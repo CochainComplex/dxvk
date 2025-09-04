@@ -26,18 +26,19 @@ namespace dxvk {
       struct { float r, g, b, a; };     // Color access
     };
     
-    // Constructors - use Vec4f for initialization then extract __m128
-    Vector4() : xmm(Vec4f(0.0f)) {}
-    Vector4(float splat) : xmm(Vec4f(splat)) {}
-    Vector4(float x, float y, float z, float w) : xmm(Vec4f(x, y, z, w)) {}
-    Vector4(const float xyzw[4]) : xmm(Vec4f().load(xyzw)) {}
+    // Constructors - use direct SSE intrinsics like Agner Fog's pattern
+    Vector4() : xmm(_mm_setzero_ps()) {}
+    Vector4(float splat) : xmm(_mm_set1_ps(splat)) {}
+    Vector4(float x, float y, float z, float w) : xmm(_mm_setr_ps(x, y, z, w)) {}
+    Vector4(const float xyzw[4]) : xmm(_mm_loadu_ps(xyzw)) {}
     Vector4(__m128 v) : xmm(v) {}
     Vector4(const Vec4f& v) : xmm(v) {}  // Implicit conversion from Vec4f
     Vector4(const Vector4& other) = default;
     Vector4& operator=(const Vector4& other) = default;
     
-    // Implicit conversion to Vec4f for VCL operations
-    operator Vec4f() const { return Vec4f(xmm); }
+    // Implicit conversions - Agner's pattern: return raw __m128
+    operator __m128() const { return xmm; }
+    operator Vec4f() const { return xmm; }  // Implicit via Vec4f(__m128)
     
     // Element access
     float& operator[](size_t index) { return data[index]; }
@@ -75,18 +76,19 @@ namespace dxvk {
       struct { int32_t r, g, b, a; };   // Color access
     };
     
-    // Constructors
-    Vector4i() : xmm(Vec4i(0)) {}
-    Vector4i(int32_t splat) : xmm(Vec4i(splat)) {}
-    Vector4i(int32_t x, int32_t y, int32_t z, int32_t w) : xmm(Vec4i(x, y, z, w)) {}
-    Vector4i(const int32_t xyzw[4]) : xmm(Vec4i().load(xyzw)) {}
+    // Constructors - use direct SSE intrinsics like Agner Fog's pattern
+    Vector4i() : xmm(_mm_setzero_si128()) {}
+    Vector4i(int32_t splat) : xmm(_mm_set1_epi32(splat)) {}
+    Vector4i(int32_t x, int32_t y, int32_t z, int32_t w) : xmm(_mm_setr_epi32(x, y, z, w)) {}
+    Vector4i(const int32_t xyzw[4]) : xmm(_mm_loadu_si128((__m128i const*)xyzw)) {}
     Vector4i(__m128i v) : xmm(v) {}
     Vector4i(const Vec4i& v) : xmm(v) {}  // Implicit conversion from Vec4i
     Vector4i(const Vector4i& other) = default;
     Vector4i& operator=(const Vector4i& other) = default;
     
-    // Implicit conversion to Vec4i
-    operator Vec4i() const { return Vec4i(xmm); }
+    // Implicit conversions - Agner's pattern: return raw __m128i
+    operator __m128i() const { return xmm; }
+    operator Vec4i() const { return xmm; }  // Implicit via Vec4i(__m128i)
     
     int32_t& operator[](size_t index) { return data[index]; }
     const int32_t& operator[](size_t index) const { return data[index]; }
@@ -110,10 +112,8 @@ namespace dxvk {
   
   // Essential vector operations - PURE VCL, no intrinsics mixing!
   inline float dot(const Vector4& a, const Vector4& b) {
-    // CRITICAL FIX: Use pure VCL, never mix with SSE intrinsics
-    // This avoids AVX-SSE transition penalties
-    Vec4f product = Vec4f(a.xmm) * Vec4f(b.xmm);
-    return horizontal_add(product);
+    // Use implicit conversion for cleaner code (Agner's pattern)
+    return horizontal_add(Vec4f(a) * Vec4f(b));
   }
   
   inline float lengthSqr(const Vector4& a) { return dot(a, a); }
