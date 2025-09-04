@@ -1,505 +1,230 @@
 #include "util_matrix.h"
+#include <cmath>
 
 namespace dxvk {
 
+  // Arithmetic operators implementation
+  Matrix4& Matrix4::operator+=(const Matrix4& m) {
+    data[0] += m.data[0];
+    data[1] += m.data[1];
+    data[2] += m.data[2];
+    data[3] += m.data[3];
+    return *this;
+  }
+  
+  Matrix4& Matrix4::operator-=(const Matrix4& m) {
+    data[0] -= m.data[0];
+    data[1] -= m.data[1];
+    data[2] -= m.data[2];
+    data[3] -= m.data[3];
+    return *this;
+  }
+  
+  Matrix4& Matrix4::operator*=(float s) {
+    data[0] *= s;
+    data[1] *= s;
+    data[2] *= s;
+    data[3] *= s;
+    return *this;
+  }
+  
+  bool Matrix4::operator==(const Matrix4& m) const {
+    return data[0] == m.data[0] && 
+           data[1] == m.data[1] && 
+           data[2] == m.data[2] && 
+           data[3] == m.data[3];
+  }
+  
+  bool Matrix4::operator!=(const Matrix4& m) const {
+    return !operator==(m);
+  }
+  
+  Matrix4 Matrix4::operator+(const Matrix4& m) const {
+    Matrix4 result = *this;
+    result += m;
+    return result;
+  }
+  
+  Matrix4 Matrix4::operator-(const Matrix4& m) const {
+    Matrix4 result = *this;
+    result -= m;
+    return result;
+  }
+  
+  Matrix4 Matrix4::operator*(float s) const {
+    Matrix4 result = *this;
+    result *= s;
+    return result;
+  }
+  
+  // Matrix multiplication - essential for transforms
+  Matrix4 Matrix4::operator*(const Matrix4& m) const {
 #if defined(DXVK_USE_VCL) && defined(DXVK_ARCH_X86)
-  // VCL-optimized implementations
-  
-  Vector4& Matrix4::operator[](size_t index)       { return data[index]; }
-  const Vector4& Matrix4::operator[](size_t index) const { return data[index]; }
-
-  bool Matrix4::operator==(const Matrix4& m2) const {
-    const Matrix4& m1 = *this;
-    for (uint32_t i = 0; i < 4; i++) {
-      if (m1[i] != m2[i])
-        return false;
-    }
-    return true;
-  }
-
-  bool Matrix4::operator!=(const Matrix4& m2) const { 
-    return !operator==(m2); 
-  }
-
-  Matrix4 Matrix4::operator+(const Matrix4& other) const {
+    // VCL-optimized matrix multiplication
     Matrix4 result;
-    for (uint32_t i = 0; i < 4; i++) {
-      result.rows[i] = Vec4f(rows[i]) + Vec4f(other.rows[i]);
-    }
-    return result;
-  }
-
-  Matrix4 Matrix4::operator-(const Matrix4& other) const {
-    Matrix4 result;
-    for (uint32_t i = 0; i < 4; i++) {
-      result.rows[i] = Vec4f(rows[i]) - Vec4f(other.rows[i]);
-    }
-    return result;
-  }
-
-  Matrix4 Matrix4::operator*(const Matrix4& b) const {
-    // Highly optimized matrix multiplication using VCL SIMD
-    Matrix4 result;
-    
-    // Load all columns of matrix b for efficient broadcast
-    Vec4f b0(b.rows[0]);
-    Vec4f b1(b.rows[1]);
-    Vec4f b2(b.rows[2]);
-    Vec4f b3(b.rows[3]);
-    
-    // For each row of the result matrix
     for (int i = 0; i < 4; i++) {
-      Vec4f ai(rows[i]);
-      
-      // Broadcast each element of row i to a full vector
-      Vec4f x = permute4<0,0,0,0>(ai);  // Broadcast ai[0]
-      Vec4f y = permute4<1,1,1,1>(ai);  // Broadcast ai[1]
-      Vec4f z = permute4<2,2,2,2>(ai);  // Broadcast ai[2]
-      Vec4f w = permute4<3,3,3,3>(ai);  // Broadcast ai[3]
-      
-      // Compute dot product with all columns simultaneously
-      result.rows[i] = x * b0 + y * b1 + z * b2 + w * b3;
-    }
-    
-    return result;
-  }
-
-  Vector4 Matrix4::operator*(const Vector4& v) const {
-    // Highly optimized matrix-vector multiplication using batch dot product approach
-    Vec4f vv(v.xmm);
-    
-    // Broadcast each component of the vector for parallel computation
-    Vec4f x = permute4<0,0,0,0>(vv);
-    Vec4f y = permute4<1,1,1,1>(vv);
-    Vec4f z = permute4<2,2,2,2>(vv);
-    Vec4f w = permute4<3,3,3,3>(vv);
-    
-    // Multiply and accumulate using FMA when available
-    // This pattern allows VCL to generate optimal FMA instructions
-    Vec4f result = Vec4f(rows[0]) * x;
-    result = mul_add(Vec4f(rows[1]), y, result);  // result + rows[1] * y
-    result = mul_add(Vec4f(rows[2]), z, result);  // result + rows[2] * z  
-    result = mul_add(Vec4f(rows[3]), w, result);  // result + rows[3] * w
-    
-    return Vector4(result);
-  }
-
-  Matrix4 Matrix4::operator*(float scalar) const {
-    Matrix4 result;
-    Vec4f s(scalar);
-    for (uint32_t i = 0; i < 4; i++) {
-      result.rows[i] = Vec4f(rows[i]) * s;
+      Vec4f row = Vec4f(data[i].xmm);
+      Vec4f c0 = Vec4f(m.data[0].xmm) * permute4<0,0,0,0>(row);
+      Vec4f c1 = Vec4f(m.data[1].xmm) * permute4<1,1,1,1>(row);
+      Vec4f c2 = Vec4f(m.data[2].xmm) * permute4<2,2,2,2>(row);
+      Vec4f c3 = Vec4f(m.data[3].xmm) * permute4<3,3,3,3>(row);
+      result.data[i] = Vector4(c0 + c1 + c2 + c3);
     }
     return result;
-  }
-
-  Matrix4 Matrix4::operator/(float scalar) const {
-    Matrix4 result;
-    Vec4f s(scalar);
-    for (uint32_t i = 0; i < 4; i++) {
-      result.rows[i] = Vec4f(rows[i]) / s;
-    }
-    return result;
-  }
-
-  Matrix4& Matrix4::operator+=(const Matrix4& other) {
-    for (uint32_t i = 0; i < 4; i++) {
-      rows[i] = Vec4f(rows[i]) + Vec4f(other.rows[i]);
-    }
-    return *this;
-  }
-
-  Matrix4& Matrix4::operator-=(const Matrix4& other) {
-    for (uint32_t i = 0; i < 4; i++) {
-      rows[i] = Vec4f(rows[i]) - Vec4f(other.rows[i]);
-    }
-    return *this;
-  }
-
-  Matrix4& Matrix4::operator*=(const Matrix4& other) {
-    return (*this = (*this) * other);
-  }
-
-  Matrix4 transpose(const Matrix4& m) {
-    // Highly optimized transpose using VCL blend operations
-    Vec4f row0(m.rows[0]);
-    Vec4f row1(m.rows[1]);
-    Vec4f row2(m.rows[2]);
-    Vec4f row3(m.rows[3]);
-    
-    // Equivalent to _mm_unpacklo_ps(a,b) - interleave low elements
-    Vec4f t0 = blend4<0,4,1,5>(row0, row1);  // a[0], b[0], a[1], b[1]
-    Vec4f t1 = blend4<2,6,3,7>(row0, row1);  // a[2], b[2], a[3], b[3]
-    Vec4f t2 = blend4<0,4,1,5>(row2, row3);  // c[0], d[0], c[1], d[1]  
-    Vec4f t3 = blend4<2,6,3,7>(row2, row3);  // c[2], d[2], c[3], d[3]
-    
-    Matrix4 result;
-    // Equivalent to _mm_movelh_ps(t0, t2) and _mm_movehl_ps variations
-    result.rows[0] = blend4<0,1,4,5>(t0, t2);  // t0[0], t0[1], t2[0], t2[1]
-    result.rows[1] = blend4<6,7,2,3>(t2, t0);  // t2[2], t2[3], t0[2], t0[3]
-    result.rows[2] = blend4<0,1,4,5>(t1, t3);  // t1[0], t1[1], t3[0], t3[1]
-    result.rows[3] = blend4<6,7,2,3>(t3, t1);  // t3[2], t3[3], t1[2], t1[3]
-    
-    return result;
-  }
-
-  float determinant(const Matrix4& m) {
-    // Optimized determinant calculation using VCL
-    float coef00    =  m[2][2] * m[3][3] - m[3][2] * m[2][3];
-    float coef02    =  m[1][2] * m[3][3] - m[3][2] * m[1][3];
-    float coef03    =  m[1][2] * m[2][3] - m[2][2] * m[1][3];
-
-    float coef04    =  m[2][1] * m[3][3] - m[3][1] * m[2][3];
-    float coef06    =  m[1][1] * m[3][3] - m[3][1] * m[1][3];
-    float coef07    =  m[1][1] * m[2][3] - m[2][1] * m[1][3];
-
-    float coef08    =  m[2][1] * m[3][2] - m[3][1] * m[2][2];
-    float coef10    =  m[1][1] * m[3][2] - m[3][1] * m[1][2];
-    float coef11    =  m[1][1] * m[2][2] - m[2][1] * m[1][2];
-
-    float coef12    =  m[2][0] * m[3][3] - m[3][0] * m[2][3];
-    float coef14    =  m[1][0] * m[3][3] - m[3][0] * m[1][3];
-    float coef15    =  m[1][0] * m[2][3] - m[2][0] * m[1][3];
-
-    float coef16    =  m[2][0] * m[3][2] - m[3][0] * m[2][2];
-    float coef18    =  m[1][0] * m[3][2] - m[3][0] * m[1][2];
-    float coef19    =  m[1][0] * m[2][2] - m[2][0] * m[1][2];
-
-    float coef20    =  m[2][0] * m[3][1] - m[3][0] * m[2][1];
-    float coef22    =  m[1][0] * m[3][1] - m[3][0] * m[1][1];
-    float coef23    =  m[1][0] * m[2][1] - m[2][0] * m[1][1];
-
-    Vec4f fac0(coef00, coef00, coef02, coef03);
-    Vec4f fac1(coef04, coef04, coef06, coef07);
-    Vec4f fac2(coef08, coef08, coef10, coef11);
-    Vec4f fac3(coef12, coef12, coef14, coef15);
-    Vec4f fac4(coef16, coef16, coef18, coef19);
-    Vec4f fac5(coef20, coef20, coef22, coef23);
-
-    Vec4f vec0(m[1][0], m[0][0], m[0][0], m[0][0]);
-    Vec4f vec1(m[1][1], m[0][1], m[0][1], m[0][1]);
-    Vec4f vec2(m[1][2], m[0][2], m[0][2], m[0][2]);
-    Vec4f vec3(m[1][3], m[0][3], m[0][3], m[0][3]);
-
-    Vec4f inv0 = vec1 * fac0 - vec2 * fac1 + vec3 * fac2;
-    Vec4f inv1 = vec0 * fac0 - vec2 * fac3 + vec3 * fac4;
-    Vec4f inv2 = vec0 * fac1 - vec1 * fac3 + vec3 * fac5;
-    Vec4f inv3 = vec0 * fac2 - vec1 * fac4 + vec2 * fac5;
-
-    Vec4f signA(+1, -1, +1, -1);
-    Vec4f signB(-1, +1, -1, +1);
-    
-    Matrix4 inverse;
-    inverse.rows[0] = inv0 * signA;
-    inverse.rows[1] = inv1 * signB;
-    inverse.rows[2] = inv2 * signA;
-    inverse.rows[3] = inv3 * signB;
-
-    Vec4f row0(inverse[0][0], inverse[1][0], inverse[2][0], inverse[3][0]);
-    Vec4f dot0 = Vec4f(m.rows[0]) * row0;
-
-    return horizontal_add(dot0);
-  }
-
-  Matrix4 inverse(const Matrix4& m) {
-    // Optimized inverse calculation using VCL
-    float coef00    = m[2][2] * m[3][3] - m[3][2] * m[2][3];
-    float coef02    = m[1][2] * m[3][3] - m[3][2] * m[1][3];
-    float coef03    = m[1][2] * m[2][3] - m[2][2] * m[1][3];
-    float coef04    = m[2][1] * m[3][3] - m[3][1] * m[2][3];
-    float coef06    = m[1][1] * m[3][3] - m[3][1] * m[1][3];
-    float coef07    = m[1][1] * m[2][3] - m[2][1] * m[1][3];
-    float coef08    = m[2][1] * m[3][2] - m[3][1] * m[2][2];
-    float coef10    = m[1][1] * m[3][2] - m[3][1] * m[1][2];
-    float coef11    = m[1][1] * m[2][2] - m[2][1] * m[1][2];
-    float coef12    = m[2][0] * m[3][3] - m[3][0] * m[2][3];
-    float coef14    = m[1][0] * m[3][3] - m[3][0] * m[1][3];
-    float coef15    = m[1][0] * m[2][3] - m[2][0] * m[1][3];
-    float coef16    = m[2][0] * m[3][2] - m[3][0] * m[2][2];
-    float coef18    = m[1][0] * m[3][2] - m[3][0] * m[1][2];
-    float coef19    = m[1][0] * m[2][2] - m[2][0] * m[1][2];
-    float coef20    = m[2][0] * m[3][1] - m[3][0] * m[2][1];
-    float coef22    = m[1][0] * m[3][1] - m[3][0] * m[1][1];
-    float coef23    = m[1][0] * m[2][1] - m[2][0] * m[1][1];
-  
-    Vec4f fac0(coef00, coef00, coef02, coef03);
-    Vec4f fac1(coef04, coef04, coef06, coef07);
-    Vec4f fac2(coef08, coef08, coef10, coef11);
-    Vec4f fac3(coef12, coef12, coef14, coef15);
-    Vec4f fac4(coef16, coef16, coef18, coef19);
-    Vec4f fac5(coef20, coef20, coef22, coef23);
-  
-    Vec4f vec0(m[1][0], m[0][0], m[0][0], m[0][0]);
-    Vec4f vec1(m[1][1], m[0][1], m[0][1], m[0][1]);
-    Vec4f vec2(m[1][2], m[0][2], m[0][2], m[0][2]);
-    Vec4f vec3(m[1][3], m[0][3], m[0][3], m[0][3]);
-  
-    Vec4f inv0 = vec1 * fac0 - vec2 * fac1 + vec3 * fac2;
-    Vec4f inv1 = vec0 * fac0 - vec2 * fac3 + vec3 * fac4;
-    Vec4f inv2 = vec0 * fac1 - vec1 * fac3 + vec3 * fac5;
-    Vec4f inv3 = vec0 * fac2 - vec1 * fac4 + vec2 * fac5;
-  
-    Vec4f signA(+1, -1, +1, -1);
-    Vec4f signB(-1, +1, -1, +1);
-    
-    Matrix4 inverse;
-    inverse.rows[0] = inv0 * signA;
-    inverse.rows[1] = inv1 * signB;
-    inverse.rows[2] = inv2 * signA;
-    inverse.rows[3] = inv3 * signB;
-
-    Vec4f row0(inverse[0][0], inverse[1][0], inverse[2][0], inverse[3][0]);
-    Vec4f dot0 = Vec4f(m.rows[0]) * row0;
-    float dot1 = horizontal_add(dot0);
-
-    if (unlikely(std::abs(dot1) <= std::numeric_limits<float>::min() * 10)) {
-      return m;
-    }
-
-    float inv_det = 1.0f / dot1;
-    return inverse * inv_det;
-  }
-
-  Matrix4 hadamardProduct(const Matrix4& a, const Matrix4& b) {
-    Matrix4 result;
-    for (uint32_t i = 0; i < 4; i++) {
-      result.rows[i] = Vec4f(a.rows[i]) * Vec4f(b.rows[i]);
-    }
-    return result;
-  }
-
 #else
-  // Original scalar implementation
-  
-        Vector4& Matrix4::operator[](size_t index)       { return data[index]; }
-  const Vector4& Matrix4::operator[](size_t index) const { return data[index]; }
-
-  bool Matrix4::operator==(const Matrix4& m2) const {
-    const Matrix4& m1 = *this;
-    for (uint32_t i = 0; i < 4; i++) {
-      if (m1[i] != m2[i])
-        return false;
-    }
-    return true;
-  }
-
-  bool Matrix4::operator!=(const Matrix4& m2) const { return !operator==(m2); }
-
-  Matrix4 Matrix4::operator+(const Matrix4& other) const {
-    Matrix4 mat;
-    for (uint32_t i = 0; i < 4; i++)
-      mat[i] = data[i] + other.data[i];
-    return mat;
-  }
-
-  Matrix4 Matrix4::operator-(const Matrix4& other) const {
-    Matrix4 mat;
-    for (uint32_t i = 0; i < 4; i++)
-      mat[i] = data[i] - other.data[i];
-    return mat;
-  }
-
-  Matrix4 Matrix4::operator*(const Matrix4& m2) const {
-    const Matrix4& m1 = *this;
-
-    const Vector4 srcA0 = { m1[0] };
-    const Vector4 srcA1 = { m1[1] };
-    const Vector4 srcA2 = { m1[2] };
-    const Vector4 srcA3 = { m1[3] };
-
-    const Vector4 srcB0 = { m2[0] };
-    const Vector4 srcB1 = { m2[1] };
-    const Vector4 srcB2 = { m2[2] };
-    const Vector4 srcB3 = { m2[3] };
-
+    // Scalar matrix multiplication
     Matrix4 result;
-    result[0] = srcA0 * srcB0[0] + srcA1 * srcB0[1] + srcA2 * srcB0[2] + srcA3 * srcB0[3];
-    result[1] = srcA0 * srcB1[0] + srcA1 * srcB1[1] + srcA2 * srcB1[2] + srcA3 * srcB1[3];
-    result[2] = srcA0 * srcB2[0] + srcA1 * srcB2[1] + srcA2 * srcB2[2] + srcA3 * srcB2[3];
-    result[3] = srcA0 * srcB3[0] + srcA1 * srcB3[1] + srcA2 * srcB3[2] + srcA3 * srcB3[3];
-    return result;
-  }
-
-  Vector4 Matrix4::operator*(const Vector4& v) const {
-    const Matrix4& m = *this;
-
-    const Vector4 mul0 = { m[0] * v[0] };
-    const Vector4 mul1 = { m[1] * v[1] };
-    const Vector4 mul2 = { m[2] * v[2] };
-    const Vector4 mul3 = { m[3] * v[3] };
-
-    const Vector4 add0 = { mul0 + mul1 };
-    const Vector4 add1 = { mul2 + mul3 };
-
-    return add0 + add1;
-  }
-
-  Matrix4 Matrix4::operator*(float scalar) const {
-    Matrix4 mat;
-    for (uint32_t i = 0; i < 4; i++)
-      mat[i] = data[i] * scalar;
-    return mat;
-  }
-
-  Matrix4 Matrix4::operator/(float scalar) const {
-    Matrix4 mat;
-    for (uint32_t i = 0; i < 4; i++)
-      mat[i] = data[i] / scalar;
-    return mat;
-  }
-
-  Matrix4& Matrix4::operator+=(const Matrix4& other) {
-    for (uint32_t i = 0; i < 4; i++)
-      data[i] += other.data[i];
-    return *this;
-  }
-
-  Matrix4& Matrix4::operator-=(const Matrix4& other) {
-    for (uint32_t i = 0; i < 4; i++)
-      data[i] -= other.data[i];
-    return *this;
-  }
-
-  Matrix4& Matrix4::operator*=(const Matrix4& other) {
-    return (*this = (*this) * other);
-  }
-
-  Matrix4 transpose(const Matrix4& m) {
-    Matrix4 result;
-
-    for (uint32_t i = 0; i < 4; i++) {
-      for (uint32_t j = 0; j < 4; j++)
-        result[i][j] = m.data[j][i];
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        result.data[i][j] = 
+          data[i][0] * m.data[0][j] +
+          data[i][1] * m.data[1][j] +
+          data[i][2] * m.data[2][j] +
+          data[i][3] * m.data[3][j];
+      }
     }
     return result;
-  }
-
-  float determinant(const Matrix4& m) {
-    float coef00    =  m[2][2] * m[3][3] - m[3][2] * m[2][3];
-    float coef02    =  m[1][2] * m[3][3] - m[3][2] * m[1][3];
-    float coef03    =  m[1][2] * m[2][3] - m[2][2] * m[1][3];
-
-    float coef04    =  m[2][1] * m[3][3] - m[3][1] * m[2][3];
-    float coef06    =  m[1][1] * m[3][3] - m[3][1] * m[1][3];
-    float coef07    =  m[1][1] * m[2][3] - m[2][1] * m[1][3];
-
-    float coef08    =  m[2][1] * m[3][2] - m[3][1] * m[2][2];
-    float coef10    =  m[1][1] * m[3][2] - m[3][1] * m[1][2];
-    float coef11    =  m[1][1] * m[2][2] - m[2][1] * m[1][2];
-
-    float coef12    =  m[2][0] * m[3][3] - m[3][0] * m[2][3];
-    float coef14    =  m[1][0] * m[3][3] - m[3][0] * m[1][3];
-    float coef15    =  m[1][0] * m[2][3] - m[2][0] * m[1][3];
-
-    float coef16    =  m[2][0] * m[3][2] - m[3][0] * m[2][2];
-    float coef18    =  m[1][0] * m[3][2] - m[3][0] * m[1][2];
-    float coef19    =  m[1][0] * m[2][2] - m[2][0] * m[1][2];
-
-    float coef20    =  m[2][0] * m[3][1] - m[3][0] * m[2][1];
-    float coef22    =  m[1][0] * m[3][1] - m[3][0] * m[1][1];
-    float coef23    =  m[1][0] * m[2][1] - m[2][0] * m[1][1];
-
-    Vector4 fac0    = { coef00, coef00, coef02, coef03 };
-    Vector4 fac1    = { coef04, coef04, coef06, coef07 };
-    Vector4 fac2    = { coef08, coef08, coef10, coef11 };
-    Vector4 fac3    = { coef12, coef12, coef14, coef15 };
-    Vector4 fac4    = { coef16, coef16, coef18, coef19 };
-    Vector4 fac5    = { coef20, coef20, coef22, coef23 };
-
-    Vector4 vec0    = { m[1][0], m[0][0], m[0][0], m[0][0] };
-    Vector4 vec1    = { m[1][1], m[0][1], m[0][1], m[0][1] };
-    Vector4 vec2    = { m[1][2], m[0][2], m[0][2], m[0][2] };
-    Vector4 vec3    = { m[1][3], m[0][3], m[0][3], m[0][3] };
-
-    Vector4 inv0    = { vec1 * fac0 - vec2 * fac1 + vec3 * fac2 };
-    Vector4 inv1    = { vec0 * fac0 - vec2 * fac3 + vec3 * fac4 };
-    Vector4 inv2    = { vec0 * fac1 - vec1 * fac3 + vec3 * fac5 };
-    Vector4 inv3    = { vec0 * fac2 - vec1 * fac4 + vec2 * fac5 };
-
-    Vector4 signA   = { +1, -1, +1, -1 };
-    Vector4 signB   = { -1, +1, -1, +1 };
-    Matrix4 inverse = { inv0 * signA, inv1 * signB, inv2 * signA, inv3 * signB };
-
-    Vector4 row0    = { inverse[0][0], inverse[1][0], inverse[2][0], inverse[3][0] };
-
-    Vector4 dot0    = { m[0] * row0 };
-
-    return (dot0.x + dot0.y) + (dot0.z + dot0.w);
-  }
-
-  Matrix4 inverse(const Matrix4& m)
-  {
-    float coef00    = m[2][2] * m[3][3] - m[3][2] * m[2][3];
-    float coef02    = m[1][2] * m[3][3] - m[3][2] * m[1][3];
-    float coef03    = m[1][2] * m[2][3] - m[2][2] * m[1][3];
-    float coef04    = m[2][1] * m[3][3] - m[3][1] * m[2][3];
-    float coef06    = m[1][1] * m[3][3] - m[3][1] * m[1][3];
-    float coef07    = m[1][1] * m[2][3] - m[2][1] * m[1][3];
-    float coef08    = m[2][1] * m[3][2] - m[3][1] * m[2][2];
-    float coef10    = m[1][1] * m[3][2] - m[3][1] * m[1][2];
-    float coef11    = m[1][1] * m[2][2] - m[2][1] * m[1][2];
-    float coef12    = m[2][0] * m[3][3] - m[3][0] * m[2][3];
-    float coef14    = m[1][0] * m[3][3] - m[3][0] * m[1][3];
-    float coef15    = m[1][0] * m[2][3] - m[2][0] * m[1][3];
-    float coef16    = m[2][0] * m[3][2] - m[3][0] * m[2][2];
-    float coef18    = m[1][0] * m[3][2] - m[3][0] * m[1][2];
-    float coef19    = m[1][0] * m[2][2] - m[2][0] * m[1][2];
-    float coef20    = m[2][0] * m[3][1] - m[3][0] * m[2][1];
-    float coef22    = m[1][0] * m[3][1] - m[3][0] * m[1][1];
-    float coef23    = m[1][0] * m[2][1] - m[2][0] * m[1][1];
-  
-    Vector4 fac0    = { coef00, coef00, coef02, coef03 };
-    Vector4 fac1    = { coef04, coef04, coef06, coef07 };
-    Vector4 fac2    = { coef08, coef08, coef10, coef11 };
-    Vector4 fac3    = { coef12, coef12, coef14, coef15 };
-    Vector4 fac4    = { coef16, coef16, coef18, coef19 };
-    Vector4 fac5    = { coef20, coef20, coef22, coef23 };
-  
-    Vector4 vec0    = { m[1][0], m[0][0], m[0][0], m[0][0] };
-    Vector4 vec1    = { m[1][1], m[0][1], m[0][1], m[0][1] };
-    Vector4 vec2    = { m[1][2], m[0][2], m[0][2], m[0][2] };
-    Vector4 vec3    = { m[1][3], m[0][3], m[0][3], m[0][3] };
-  
-    Vector4 inv0    = { vec1 * fac0 - vec2 * fac1 + vec3 * fac2 };
-    Vector4 inv1    = { vec0 * fac0 - vec2 * fac3 + vec3 * fac4 };
-    Vector4 inv2    = { vec0 * fac1 - vec1 * fac3 + vec3 * fac5 };
-    Vector4 inv3    = { vec0 * fac2 - vec1 * fac4 + vec2 * fac5 };
-  
-    Vector4 signA   = { +1, -1, +1, -1 };
-    Vector4 signB   = { -1, +1, -1, +1 };
-    Matrix4 inverse = { inv0 * signA, inv1 * signB, inv2 * signA, inv3 * signB };
-
-    Vector4 row0    = { inverse[0][0], inverse[1][0], inverse[2][0], inverse[3][0] };
-
-    Vector4 dot0    = { m[0] * row0 };
-    float dot1      = (dot0.x + dot0.y) + (dot0.z + dot0.w);
-
-    if (unlikely(std::abs(dot1) <= std::numeric_limits<float>::min() * 10)) {
-      return m;
-    }
-
-    return inverse * (1.0f / dot1);
-  }
-
-  Matrix4 hadamardProduct(const Matrix4& a, const Matrix4& b) {
-    Matrix4 result;
-
-    for (uint32_t i = 0; i < 4; i++)
-      result[i] = a[i] * b[i];
-
-    return result;
-  }
 #endif
-
-  std::ostream& operator<<(std::ostream& os, const Matrix4& m) {
-    os << "Matrix4(";
-    for (uint32_t i = 0; i < 4; i++) {
-      os << "\n\t" << m[i];
-      if (i < 3)
-        os << ", ";
+  }
+  
+  // Matrix-vector multiplication - essential for position transforms
+  Vector4 Matrix4::operator*(const Vector4& v) const {
+#if defined(DXVK_USE_VCL) && defined(DXVK_ARCH_X86)
+    // VCL-optimized matrix-vector multiplication
+    Vec4f vec(v.xmm);
+    Vec4f c0 = Vec4f(data[0].xmm) * permute4<0,0,0,0>(vec);
+    Vec4f c1 = Vec4f(data[1].xmm) * permute4<1,1,1,1>(vec);
+    Vec4f c2 = Vec4f(data[2].xmm) * permute4<2,2,2,2>(vec);
+    Vec4f c3 = Vec4f(data[3].xmm) * permute4<3,3,3,3>(vec);
+    
+    Vec4f t01 = c0 + c1;
+    Vec4f t23 = c2 + c3;
+    return Vector4(t01 + t23);
+#else
+    // Scalar matrix-vector multiplication
+    return Vector4(
+      dot(data[0], v),
+      dot(data[1], v),
+      dot(data[2], v),
+      dot(data[3], v)
+    );
+#endif
+  }
+  
+  // Transpose - essential for normal matrix calculation
+  Matrix4 transpose(const Matrix4& m) {
+#if defined(DXVK_USE_VCL) && defined(DXVK_ARCH_X86)
+    // VCL-optimized transpose using blend operations
+    Vec4f r0 = Vec4f(m.data[0].xmm);
+    Vec4f r1 = Vec4f(m.data[1].xmm);
+    Vec4f r2 = Vec4f(m.data[2].xmm);
+    Vec4f r3 = Vec4f(m.data[3].xmm);
+    
+    Vec4f t0 = blend4<0,4,2,6>(r0, r1);
+    Vec4f t1 = blend4<1,5,3,7>(r0, r1);
+    Vec4f t2 = blend4<0,4,2,6>(r2, r3);
+    Vec4f t3 = blend4<1,5,3,7>(r2, r3);
+    
+    Matrix4 result;
+    result.data[0] = Vector4(blend4<0,1,4,5>(t0, t2));
+    result.data[1] = Vector4(blend4<0,1,4,5>(t1, t3));
+    result.data[2] = Vector4(blend4<2,3,6,7>(t0, t2));
+    result.data[3] = Vector4(blend4<2,3,6,7>(t1, t3));
+    return result;
+#else
+    // Scalar transpose
+    Matrix4 result;
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        result.data[i][j] = m.data[j][i];
+      }
     }
-    os << "\n)";
+    return result;
+#endif
+  }
+  
+  // Determinant - used by inverse
+  float determinant(const Matrix4& m) {
+    // Calculate 2x2 determinants
+    float s0 = m.data[0][0] * m.data[1][1] - m.data[1][0] * m.data[0][1];
+    float s1 = m.data[0][0] * m.data[1][2] - m.data[1][0] * m.data[0][2];
+    float s2 = m.data[0][0] * m.data[1][3] - m.data[1][0] * m.data[0][3];
+    float s3 = m.data[0][1] * m.data[1][2] - m.data[1][1] * m.data[0][2];
+    float s4 = m.data[0][1] * m.data[1][3] - m.data[1][1] * m.data[0][3];
+    float s5 = m.data[0][2] * m.data[1][3] - m.data[1][2] * m.data[0][3];
 
+    // Calculate 3x3 cofactors
+    float c5 = m.data[2][2] * m.data[3][3] - m.data[3][2] * m.data[2][3];
+    float c4 = m.data[2][1] * m.data[3][3] - m.data[3][1] * m.data[2][3];
+    float c3 = m.data[2][1] * m.data[3][2] - m.data[3][1] * m.data[2][2];
+    float c2 = m.data[2][0] * m.data[3][3] - m.data[3][0] * m.data[2][3];
+    float c1 = m.data[2][0] * m.data[3][2] - m.data[3][0] * m.data[2][2];
+    float c0 = m.data[2][0] * m.data[3][1] - m.data[3][0] * m.data[2][1];
+
+    // Calculate determinant
+    return s0 * c5 - s1 * c4 + s2 * c3 + s3 * c2 - s4 * c1 + s5 * c0;
+  }
+  
+  // Inverse - essential for normal matrix calculation
+  Matrix4 inverse(const Matrix4& m) {
+    // Calculate 2x2 determinants for cofactor matrix
+    float s0 = m.data[0][0] * m.data[1][1] - m.data[1][0] * m.data[0][1];
+    float s1 = m.data[0][0] * m.data[1][2] - m.data[1][0] * m.data[0][2];
+    float s2 = m.data[0][0] * m.data[1][3] - m.data[1][0] * m.data[0][3];
+    float s3 = m.data[0][1] * m.data[1][2] - m.data[1][1] * m.data[0][2];
+    float s4 = m.data[0][1] * m.data[1][3] - m.data[1][1] * m.data[0][3];
+    float s5 = m.data[0][2] * m.data[1][3] - m.data[1][2] * m.data[0][3];
+
+    float c5 = m.data[2][2] * m.data[3][3] - m.data[3][2] * m.data[2][3];
+    float c4 = m.data[2][1] * m.data[3][3] - m.data[3][1] * m.data[2][3];
+    float c3 = m.data[2][1] * m.data[3][2] - m.data[3][1] * m.data[2][2];
+    float c2 = m.data[2][0] * m.data[3][3] - m.data[3][0] * m.data[2][3];
+    float c1 = m.data[2][0] * m.data[3][2] - m.data[3][0] * m.data[2][2];
+    float c0 = m.data[2][0] * m.data[3][1] - m.data[3][0] * m.data[2][1];
+
+    // Calculate determinant
+    float det = s0 * c5 - s1 * c4 + s2 * c3 + s3 * c2 - s4 * c1 + s5 * c0;
+    
+    if (std::abs(det) < 1e-10f) {
+      // Matrix is singular, return identity
+      return Matrix4();
+    }
+
+    float invdet = 1.0f / det;
+
+    // Calculate adjugate matrix and multiply by 1/det
+    Matrix4 result;
+    
+    result.data[0][0] = ( m.data[1][1] * c5 - m.data[1][2] * c4 + m.data[1][3] * c3) * invdet;
+    result.data[0][1] = (-m.data[0][1] * c5 + m.data[0][2] * c4 - m.data[0][3] * c3) * invdet;
+    result.data[0][2] = ( m.data[3][1] * s5 - m.data[3][2] * s4 + m.data[3][3] * s3) * invdet;
+    result.data[0][3] = (-m.data[2][1] * s5 + m.data[2][2] * s4 - m.data[2][3] * s3) * invdet;
+
+    result.data[1][0] = (-m.data[1][0] * c5 + m.data[1][2] * c2 - m.data[1][3] * c1) * invdet;
+    result.data[1][1] = ( m.data[0][0] * c5 - m.data[0][2] * c2 + m.data[0][3] * c1) * invdet;
+    result.data[1][2] = (-m.data[3][0] * s5 + m.data[3][2] * s2 - m.data[3][3] * s1) * invdet;
+    result.data[1][3] = ( m.data[2][0] * s5 - m.data[2][2] * s2 + m.data[2][3] * s1) * invdet;
+
+    result.data[2][0] = ( m.data[1][0] * c4 - m.data[1][1] * c2 + m.data[1][3] * c0) * invdet;
+    result.data[2][1] = (-m.data[0][0] * c4 + m.data[0][1] * c2 - m.data[0][3] * c0) * invdet;
+    result.data[2][2] = ( m.data[3][0] * s4 - m.data[3][1] * s2 + m.data[3][3] * s0) * invdet;
+    result.data[2][3] = (-m.data[2][0] * s4 + m.data[2][1] * s2 - m.data[2][3] * s0) * invdet;
+
+    result.data[3][0] = (-m.data[1][0] * c3 + m.data[1][1] * c1 - m.data[1][2] * c0) * invdet;
+    result.data[3][1] = ( m.data[0][0] * c3 - m.data[0][1] * c1 + m.data[0][2] * c0) * invdet;
+    result.data[3][2] = (-m.data[3][0] * s3 + m.data[3][1] * s1 - m.data[3][2] * s0) * invdet;
+    result.data[3][3] = ( m.data[2][0] * s3 - m.data[2][1] * s1 + m.data[2][2] * s0) * invdet;
+
+    return result;
+  }
+  
+  // Output stream
+  std::ostream& operator<<(std::ostream& os, const Matrix4& m) {
+    os << "Matrix4(\n";
+    for (int i = 0; i < 4; i++) {
+      os << "  " << m.data[i] << "\n";
+    }
+    os << ")";
     return os;
   }
 
