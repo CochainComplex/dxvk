@@ -1,4 +1,5 @@
 #include "dxvk_hud_item.h"
+#include "../../util/util_asmlib.h"
 
 #include <hud_chunk_frag_background.h>
 #include <hud_chunk_frag_visualize.h>
@@ -1090,12 +1091,12 @@ namespace dxvk::hud {
     }
 
     // Update draw infos and pad unused area with zeroes
-    std::memcpy(m_dataBuffer->mapPtr(0), m_drawInfos.data(), drawInfoSize);
-    std::memset(m_dataBuffer->mapPtr(drawInfoSize), 0, drawInfoSizeAligned - drawInfoSize);
+    dxvk_memcpy(m_dataBuffer->mapPtr(0), m_drawInfos.data(), drawInfoSize);
+    dxvk_memset(m_dataBuffer->mapPtr(drawInfoSize), 0, drawInfoSizeAligned - drawInfoSize);
 
     // Update chunk data and pad with zeroes
-    std::memcpy(m_dataBuffer->mapPtr(drawInfoSizeAligned), m_stats.pageMasks.data(), chunkDataSize);
-    std::memset(m_dataBuffer->mapPtr(drawInfoSizeAligned + chunkDataSize), 0, chunkDataSizeAligned - chunkDataSize);
+    dxvk_memcpy(m_dataBuffer->mapPtr(drawInfoSizeAligned), m_stats.pageMasks.data(), chunkDataSize);
+    dxvk_memset(m_dataBuffer->mapPtr(drawInfoSizeAligned + chunkDataSize), 0, chunkDataSizeAligned - chunkDataSize);
 
     // Write back descriptors
     drawDescriptor = m_dataBuffer->getSliceInfo(0u, drawInfoSizeAligned);

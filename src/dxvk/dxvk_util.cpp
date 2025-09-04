@@ -2,6 +2,7 @@
 
 #include "dxvk_format.h"
 #include "dxvk_util.h"
+#include "../util/util_asmlib.h"
 
 namespace dxvk::util {
   
@@ -37,11 +38,11 @@ namespace dxvk::util {
                          && ((bytesPerLayer == pitchPerLayer) || (blockCount.depth  == 1));
     
     if (directCopy) {
-      std::memcpy(dstData, srcData, bytesTotal);
+      dxvk_memcpy(dstData, srcData, bytesTotal);
     } else {
       for (uint32_t i = 0; i < blockCount.depth; i++) {
         for (uint32_t j = 0; j < blockCount.height; j++) {
-          std::memcpy(
+          dxvk_memcpy(
             dstData + j * bytesPerRow,
             srcData + j * pitchPerRow,
             bytesPerRow);
@@ -95,7 +96,7 @@ namespace dxvk::util {
                              && ((bytesPerSlice == srcSlicePitch && bytesPerSlice == dstSlicePitch) || (blockCount.depth  == 1));
 
         if (directCopy) {
-          std::memcpy(dstData, srcData, bytesTotal);
+          dxvk_memcpy(dstData, srcData, bytesTotal);
 
           switch (imageType) {
             case VK_IMAGE_TYPE_1D:
@@ -115,7 +116,7 @@ namespace dxvk::util {
         } else {
           for (uint32_t i = 0; i < blockCount.depth; i++) {
             for (uint32_t j = 0; j < blockCount.height; j++) {
-              std::memcpy(
+              dxvk_memcpy(
                 dstData + j * dstRowPitch,
                 srcData + j * srcRowPitch,
                 bytesPerRow);

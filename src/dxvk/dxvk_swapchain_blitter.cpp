@@ -1,4 +1,5 @@
 #include "dxvk_swapchain_blitter.h"
+#include "../util/util_asmlib.h"
 
 #include <dxvk_cursor_frag.h>
 #include <dxvk_cursor_vert.h>
@@ -160,7 +161,7 @@ namespace dxvk {
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
       m_gammaCpCount = cpCount;
 
-      std::memcpy(m_gammaBuffer->mapPtr(0), cpData, cpCount * sizeof(*cpData));
+      dxvk_memcpy(m_gammaBuffer->mapPtr(0), cpData, cpCount * sizeof(*cpData));
     } else {
       // Destroy gamma image altogether
       m_gammaBuffer = nullptr;
@@ -189,7 +190,7 @@ namespace dxvk {
       m_cursorBuffer = m_device->createBuffer(bufferInfo,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-      std::memcpy(m_cursorBuffer->mapPtr(0), data, bufferInfo.size);
+      dxvk_memcpy(m_cursorBuffer->mapPtr(0), data, bufferInfo.size);
 
       DxvkImageCreateInfo imageInfo = { };
       imageInfo.type = VK_IMAGE_TYPE_2D;

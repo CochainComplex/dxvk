@@ -7,6 +7,7 @@
 
 #include "../../util/util_string.h"
 #include "../../util/log/log.h"
+#include "../../util/util_asmlib.h"
 
 #include <string>
 #include <sstream>
@@ -42,7 +43,7 @@ namespace dxvk::wsi {
 
     std::wstring name = nameStream.str();
 
-    std::memset(Name, 0, sizeof(Name));
+    dxvk_memset(Name, 0, sizeof(Name));
     name.copy(Name, name.length(), 0);
 
     return true;

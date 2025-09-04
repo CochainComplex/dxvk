@@ -1,6 +1,7 @@
 #include "d3d8_device.h"
 #include "d3d8_interface.h"
 #include "d3d8_shader.h"
+#include "../util/util_asmlib.h"
 
 #ifdef MSC_VER
 #pragma fenv_access (on)
@@ -99,7 +100,7 @@ namespace dxvk {
           if (DevInfoStructSize < sizeof(D3DDEVINFO_VCACHE))
             return D3DERR_INVALIDCALL;
 
-          memset(pDevInfoStruct, 0, sizeof(D3DDEVINFO_VCACHE));
+          dxvk_memset(pDevInfoStruct, 0, sizeof(D3DDEVINFO_VCACHE));
           return S_FALSE;
         }
 
@@ -608,7 +609,7 @@ namespace dxvk {
 
       // If copying the entire texture into a congruent destination,
       // we can do this in one continuous copy.
-      std::memcpy(dstLocked.pBits, srcLocked.pBits, srcLocked.Pitch * rows);
+      dxvk_memcpy(dstLocked.pBits, srcLocked.pBits, srcLocked.Pitch * rows);
 
     } else {
       // Bytes per row of the rect
@@ -637,7 +638,7 @@ namespace dxvk {
       // Copy one row at a time
       size_t srcOffset = 0, dstOffset = 0;
       for (auto i = 0; i < rows; i++) {
-        std::memcpy(
+        dxvk_memcpy(
           reinterpret_cast<uint8_t*>(dstLocked.pBits) + dstOffset,
           reinterpret_cast<uint8_t*>(srcLocked.pBits) + srcOffset,
           amplitude);
@@ -2023,7 +2024,7 @@ namespace dxvk {
       return D3DERR_INVALIDCALL;
     }
 
-    memcpy(pData, pInfo->declaration.data(), ActualSize);
+    dxvk_memcpy(pData, pInfo->declaration.data(), ActualSize);
     return D3D_OK;
   }
 
@@ -2053,7 +2054,7 @@ namespace dxvk {
       return D3DERR_INVALIDCALL;
     }
 
-    memcpy(pData, pInfo->function.data(), ActualSize);
+    dxvk_memcpy(pData, pInfo->function.data(), ActualSize);
     return D3D_OK;
 
   }

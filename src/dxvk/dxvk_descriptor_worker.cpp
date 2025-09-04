@@ -1,5 +1,6 @@
 #include "dxvk_descriptor_worker.h"
 #include "dxvk_device.h"
+#include "../util/util_asmlib.h"
 
 namespace dxvk {
 
@@ -176,7 +177,7 @@ namespace dxvk {
         rawDescriptor[3u] = 0x31016facu; /* don't ask */
       }
 
-      std::memcpy(descriptor.descriptor.data(), rawDescriptor.data(), sizeof(rawDescriptor));
+      dxvk_memcpy(descriptor.descriptor.data(), rawDescriptor.data(), sizeof(rawDescriptor));
     }
   }
 

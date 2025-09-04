@@ -1,6 +1,7 @@
 #include <algorithm>
 
 #include "d3d11_context.h"
+#include "../util/util_asmlib.h"
 #include "d3d11_context_def.h"
 #include "d3d11_context_imm.h"
 
@@ -2372,7 +2373,7 @@ namespace dxvk {
       *ppBlendState = ref(m_state.om.cbState);
 
     if (BlendFactor)
-      std::memcpy(BlendFactor, m_state.om.blendFactor, sizeof(FLOAT) * 4);
+      dxvk_memcpy(BlendFactor, m_state.om.blendFactor, sizeof(FLOAT) * 4);
 
     if (pSampleMask)
       *pSampleMask = m_state.om.sampleMask;
@@ -3020,7 +3021,7 @@ namespace dxvk {
     VkDeviceSize bufferSize = pDestTileRegionSize->NumTiles * SparseMemoryPageSize;
 
     DxvkBufferSlice slice = AllocStagingBuffer(bufferSize);
-    std::memcpy(slice.mapPtr(0), pSourceTileData, bufferSize);
+    dxvk_memcpy(slice.mapPtr(0), pSourceTileData, bufferSize);
 
     // Fix up flags. The runtime probably validates this in some
     // way but our internal function relies on correct flags anyway.
@@ -5557,7 +5558,7 @@ namespace dxvk {
     } else {
       // Write directly to a staging buffer and dispatch a copy
       DxvkBufferSlice stagingSlice = AllocStagingBuffer(Length);
-      std::memcpy(stagingSlice.mapPtr(0), pSrcData, Length);
+      dxvk_memcpy(stagingSlice.mapPtr(0), pSrcData, Length);
 
       EmitCs([
         cStagingSlice = std::move(stagingSlice),

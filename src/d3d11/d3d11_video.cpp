@@ -2,6 +2,7 @@
 
 #include "d3d11_context_imm.h"
 #include "d3d11_video.h"
+#include "../util/util_asmlib.h"
 
 #include <d3d11_video_blit_frag.h>
 #include <d3d11_video_blit_vert.h>
@@ -1371,7 +1372,7 @@ namespace dxvk {
       }
     }
 
-    memcpy(pDst, &result[0][0], sizeof(result));
+    dxvk_memcpy(pDst, &result[0][0], sizeof(result));
   }
 
 
@@ -1521,7 +1522,7 @@ namespace dxvk {
       }
 
       Rc<DxvkResourceAllocation> uboSlice = m_ubo->allocateStorage();
-      memcpy(uboSlice->mapPtr(), &uboData, sizeof(uboData));
+      dxvk_memcpy(uboSlice->mapPtr(), &uboData, sizeof(uboData));
 
       DxvkViewport vp = { viewport, scissor };
 

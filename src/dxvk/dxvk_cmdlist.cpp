@@ -1,6 +1,7 @@
 
 #include "dxvk_cmdlist.h"
 #include "dxvk_device.h"
+#include "../util/util_asmlib.h"
 
 namespace dxvk {
 
@@ -576,7 +577,7 @@ namespace dxvk {
 
     if (pushDataSize && !pushDataBlock.isEmpty()) {
       std::array<char, MaxTotalPushDataSize> dataCopy;
-      std::memcpy(dataCopy.data(), pushData,
+      dxvk_memcpy(dataCopy.data(), pushData,
         std::min(dataCopy.size(), pushDataSize));
 
       this->cmdPushConstants(cmdBuffer,
@@ -694,7 +695,7 @@ namespace dxvk {
 
     if (pushDataSize && !pushDataBlock.isEmpty()) {
       std::array<char, MaxTotalPushDataSize> dataCopy;
-      std::memcpy(dataCopy.data(), pushData,
+      dxvk_memcpy(dataCopy.data(), pushData,
         std::min(dataCopy.size(), pushDataSize));
 
       this->cmdPushConstants(cmdBuffer,

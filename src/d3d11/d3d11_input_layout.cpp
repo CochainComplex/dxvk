@@ -1,5 +1,6 @@
 #include "d3d11_device.h"
 #include "d3d11_input_layout.h"
+#include "../util/util_asmlib.h"
 
 namespace dxvk {
   
@@ -67,7 +68,7 @@ namespace dxvk {
     // Try to vectorize at least a little bit here. We can't use bcmpeq here
     // since there is no way at all to guaratee alignment for the array.
     for (uint32_t i = 0; i < m_attributeCount + m_bindingCount; i += 4u) {
-      if (std::memcmp(&m_inputs[i], &pOther->m_inputs[i], 4u * sizeof(DxvkVertexInput)))
+      if (dxvk_memcmp(&m_inputs[i], &pOther->m_inputs[i], 4u * sizeof(DxvkVertexInput)))
         return false;
     }
 

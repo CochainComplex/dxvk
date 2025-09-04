@@ -4,6 +4,7 @@
 #include "dxvk_framebuffer.h"
 #include "dxvk_limits.h"
 #include "dxvk_shader.h"
+#include "../util/util_asmlib.h"
 
 namespace dxvk {
   
@@ -328,7 +329,7 @@ namespace dxvk {
     }
 
     bool eq(const DxvkStencilOp& other) const {
-      return !std::memcmp(this, &other, sizeof(*this));
+      return !dxvk_memcmp(this, &other, sizeof(*this));
     }
 
     bool normalize(VkCompareOp depthOp);

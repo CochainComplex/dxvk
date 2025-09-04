@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include "d3d9_initializer.h"
+#include "../util/util_asmlib.h"
 #include "d3d9_device.h"
 
 namespace dxvk {
@@ -86,7 +87,7 @@ namespace dxvk {
     // If the buffer is mapped, we can write data directly
     // to the mapped memory region instead of doing it on
     // the GPU. Same goes for zero-initialization.
-    std::memset(
+    dxvk_memset(
       Slice.mapPtr(0), 0,
       Slice.length());
   }
@@ -138,7 +139,7 @@ namespace dxvk {
     } else {
       // All subresources are allocated in one chunk of memory.
       // So we can just get the pointer for subresource 0 and memset all of them at once.
-      std::memset(
+      dxvk_memset(
         mapPtr, 0,
         pTexture->GetTotalSize());
     }

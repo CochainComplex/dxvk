@@ -175,6 +175,35 @@ endif
 dxbc_spirv = subproject('dxbc-spirv')
 dxbc_spirv_dep = dxbc_spirv.get_variable('dxbc_spv_dep')
 
+# asmlib configuration
+if get_option('enable_asmlib')
+  asmlib_path = meson.current_source_dir() / 'include' / 'asmlib'
+  
+  # Platform and architecture specific library selection
+  if platform == 'windows'
+    if cpu_family == 'x86_64'
+      asmlib_lib = 'acof64'
+    else
+      asmlib_lib = 'acof32'
+    endif
+  else  # Linux/Unix
+    if cpu_family == 'x86_64'
+      asmlib_lib = 'aelf64'
+    else
+      asmlib_lib = 'aelf32'
+    endif
+  endif
+  
+  # Add asmlib dependency
+  asmlib_link_args = ['-L' + asmlib_path, '-l' + asmlib_lib]
+  
+  # Define macro for conditional compilation
+  add_project_arguments('-DDXVK_USE_ASMLIB', language: ['c', 'cpp'])
+  add_project_link_arguments(asmlib_link_args, language: ['c', 'cpp'])
+  
+  message('asmlib enabled: Using optimized memory functions from ' + asmlib_lib)
+endif
+
 dxvk_include_path = include_directories(dxvk_include_dirs)
 
 add_project_arguments(cpp.get_supported_arguments(compiler_args), language: 'cpp')

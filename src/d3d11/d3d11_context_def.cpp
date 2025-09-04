@@ -1,5 +1,6 @@
 #include "d3d11_context_def.h"
 #include "d3d11_device.h"
+#include "../util/util_asmlib.h"
 
 namespace dxvk {
   
@@ -373,7 +374,7 @@ namespace dxvk {
       mapPtr = mapInfo.pData;
     }
 
-    std::memcpy(reinterpret_cast<char*>(mapPtr) + Offset, pSrcData, Length);
+    dxvk_memcpy(reinterpret_cast<char*>(mapPtr) + Offset, pSrcData, Length);
   }
 
 

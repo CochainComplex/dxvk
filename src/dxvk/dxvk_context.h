@@ -11,6 +11,7 @@
 #include "dxvk_objects.h"
 #include "dxvk_queue.h"
 #include "dxvk_util.h"
+#include "../util/util_asmlib.h"
 
 namespace dxvk {
 
@@ -989,7 +990,7 @@ namespace dxvk {
       uint32_t index = DxvkPushDataBlock::computeIndex(stages);
 
       uint32_t baseOffset = computePushDataBlockOffset(index);
-      std::memcpy(&m_state.pc.constantData[baseOffset + offset], data, size);
+      dxvk_memcpy(&m_state.pc.constantData[baseOffset + offset], data, size);
 
       m_flags.set(DxvkContextFlag::DirtyPushData);
     }

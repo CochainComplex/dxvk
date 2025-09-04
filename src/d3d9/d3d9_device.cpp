@@ -22,6 +22,7 @@
 
 #include "../util/util_bit.h"
 #include "../util/util_math.h"
+#include "../util/util_asmlib.h"
 
 #include "d3d9_initializer.h"
 
@@ -402,7 +403,7 @@ namespace dxvk {
         inputWidth * inputHeight * HardwareCursorFormatSize);
 
       for (uint32_t h = 0; h < HardwareCursorHeight; h++)
-        std::memcpy(&bitmap[h * HardwareCursorPitch], &data[h * lockedBox.RowPitch], copyPitch);
+        dxvk_memcpy(&bitmap[h * HardwareCursorPitch], &data[h * lockedBox.RowPitch], copyPitch);
 
       UnlockImage(cursorTex, 0, 0);
 
@@ -413,7 +414,7 @@ namespace dxvk {
       std::vector<uint8_t> bitmap(inputHeight * copyPitch, 0);
 
       for (uint32_t h = 0; h < inputHeight; h++)
-        std::memcpy(&bitmap[h * copyPitch], &data[h * lockedBox.RowPitch], copyPitch);
+        dxvk_memcpy(&bitmap[h * copyPitch], &data[h * lockedBox.RowPitch], copyPitch);
 
       UnlockImage(cursorTex, 0, 0);
 
@@ -2853,14 +2854,14 @@ namespace dxvk {
       // D3D9 documentation: "IDirect3DDevice9::SetPaletteEntries updates all of a palette's
       // 256 entries. Each entry is a PALETTEENTRY structure of the format D3DFMT_A8R8G8B8."
       std::array<PALETTEENTRY, PaletteEntryCount> paletteEntry;
-      memcpy(&paletteEntry[0], pEntries, sizeof(PALETTEENTRY) * PaletteEntryCount);
+      dxvk_memcpy(&paletteEntry[0], pEntries, sizeof(PALETTEENTRY) * PaletteEntryCount);
 
       m_state.texturePalettes.emplace(std::piecewise_construct,
                                       std::forward_as_tuple(PaletteNumber),
                                       std::forward_as_tuple(paletteEntry));
     // if the pallete already exists, update the palette entry array
     } else {
-      memcpy(&texturePalettesIter->second[0], pEntries, sizeof(PALETTEENTRY) * PaletteEntryCount);
+      dxvk_memcpy(&texturePalettesIter->second[0], pEntries, sizeof(PALETTEENTRY) * PaletteEntryCount);
     }
 
     return D3D_OK;
@@ -2880,7 +2881,7 @@ namespace dxvk {
       return D3DERR_INVALIDCALL;
     }
 
-    memcpy(pEntries, &texturePalettesIter->second[0], sizeof(PALETTEENTRY) * PaletteEntryCount);
+    dxvk_memcpy(pEntries, &texturePalettesIter->second[0], sizeof(PALETTEENTRY) * PaletteEntryCount);
 
     return D3D_OK;
   }
@@ -3165,7 +3166,7 @@ namespace dxvk {
     auto upSlice = AllocUPBuffer(upSize);
     uint8_t* data = reinterpret_cast<uint8_t*>(upSlice.mapPtr);
     FillUPVertexBuffer(data, pVertexStreamZeroData, vertexDataSize, vertexBufferSize);
-    std::memcpy(data + vertexBufferSize, pIndexData, indicesSize);
+    dxvk_memcpy(data + vertexBufferSize, pIndexData, indicesSize);
 
     EmitCs([this,
       cVertexSize   = vertexBufferSize,
@@ -5519,7 +5520,7 @@ namespace dxvk {
 
     D3D9BufferSlice slice = AllocStagingBuffer(range.max - range.min);
     void* srcData = reinterpret_cast<uint8_t*>(srcSlice->mapPtr()) + range.min;
-    memcpy(slice.mapPtr, srcData, range.max - range.min);
+    dxvk_memcpy(slice.mapPtr, srcData, range.max - range.min);
 
     EmitCs([
       cDstSlice  = dstBuffer,
@@ -5708,14 +5709,14 @@ namespace dxvk {
           const uint8_t* src = reinterpret_cast<uint8_t*>(vbo->GetMappedSlice()->mapPtr()) + copy.srcOffset;
 
           if (likely(copy.copyElementStride == copy.copyElementSize)) {
-            std::memcpy(data, src, copy.copyBufferLength);
+            dxvk_memcpy(data, src, copy.copyBufferLength);
           } else {
             for (uint32_t j = 0; j < copy.copyElementCount; j++) {
-              std::memcpy(data + j * copy.copyElementSize, src + j * copy.copyElementStride, copy.copyElementSize);
+              dxvk_memcpy(data + j * copy.copyElementSize, src + j * copy.copyElementStride, copy.copyElementSize);
             }
             if (unlikely(copy.copyBufferLength > copy.copyElementCount * copy.copyElementSize)) {
               // Partial vertex at the end
-              std::memcpy(
+              dxvk_memcpy(
                 data + copy.copyElementCount * copy.copyElementSize,
                 src + copy.copyElementCount * copy.copyElementStride,
                 copy.copyBufferLength - copy.copyElementCount * copy.copyElementSize);
@@ -5755,7 +5756,7 @@ namespace dxvk {
         uint32_t offset = indexStride * FirstIndex;
         uint8_t* data = reinterpret_cast<uint8_t*>(upSlice.mapPtr) + iboUPBufferOffset;
         uint8_t* src = reinterpret_cast<uint8_t*>(ibo->GetMappedSlice()->mapPtr()) + offset;
-        std::memcpy(data, src, iboUPBufferSize);
+        dxvk_memcpy(data, src, iboUPBufferSize);
 
         auto iboSlice = upSlice.slice.subSlice(iboUPBufferOffset, iboUPBufferSize);
         EmitCs([
@@ -6007,7 +6008,7 @@ namespace dxvk {
     size = align(size, alignment);
 
     auto mapPtr = dstBuffer.Alloc(size);
-    std::memcpy(mapPtr, src, size);
+    dxvk_memcpy(mapPtr, src, size);
     return mapPtr;
   }
 
@@ -6049,9 +6050,9 @@ namespace dxvk {
 
     const uint32_t intDataSize = constSet.meta.maxConstIndexI * sizeof(Vector4i);
     if (constSet.meta.maxConstIndexI != 0)
-      std::memcpy(dst->iConsts, Src.iConsts, intDataSize);
+      dxvk_memcpy(dst->iConsts, Src.iConsts, intDataSize);
     if (constSet.meta.maxConstIndexF != 0)
-      std::memcpy(dst->fConsts, Src.fConsts, floatDataSize);
+      dxvk_memcpy(dst->fConsts, Src.fConsts, floatDataSize);
 
     if (constSet.meta.needsConstantCopies) {
       // Copy shader defined constants over so they can be accessed
@@ -8978,7 +8979,7 @@ namespace dxvk {
     if (m_usingGraphicsPipelines) {
       // TODO: Make uploading specialization information less naive.
       auto mapPtr = m_specBuffer.AllocSlice();
-      memcpy(mapPtr, m_specInfo.data.data(), D3D9SpecializationInfo::UBOSize);
+      dxvk_memcpy(mapPtr, m_specInfo.data.data(), D3D9SpecializationInfo::UBOSize);
     }
 
     m_flags.clr(D3D9DeviceFlag::DirtySpecializationEntries);

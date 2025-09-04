@@ -1,6 +1,26 @@
-# DXVK
+# DXVK-Fogged (Performance-Enhanced Fork)
+
+---
+**Fork Notice**: This is simply a performance-focused fork of [doitsujin/dxvk](https://github.com/doitsujin/dxvk). **All credit goes to doitsujin/ドイツ人 (Philip Rebohle)** for creating the original DXVK project. For the official DXVK project, please visit the [upstream repository](https://github.com/doitsujin/dxvk).
+
+**What is DXVK-Fogged?**
+This fork enhances the original DXVK with CPU-specific memory optimizations using **Agner Fog's** high-performance libraries. While DXVK translates DirectX to Vulkan on the GPU, this fork optimizes the CPU-side operations (memory copies, buffer updates, shader processing) for better overall performance.
+
+**Performance Libraries Integrated**:
+- [asmlib](https://www.agner.org/optimize/) - Optimized assembly subroutines by Agner Fog
+- Future: [Vector Class Library](https://github.com/vectorclass/version2) - SIMD vector operations
+---
 
 A Vulkan-based translation layer for Direct3D 8/9/10/11 which allows running 3D applications on Linux using Wine.
+
+## Fork Features
+
+- **CPU-optimized memory functions**: Automatically uses AVX2, SSE4.2, or other optimal instruction sets based on CPU capabilities
+- **Zero-overhead dispatching**: Compile-time flag enables optimizations with no runtime cost
+- **116+ optimized function calls**: Comprehensive replacement of memory operations in critical paths
+- **Automatic CPU detection**: asmlib detects and uses the best instruction set at runtime
+
+> **TL;DR**: Same DXVK you know and love, but with faster CPU-side operations. Enable with `-Denable_asmlib=true` during build for automatic performance gains.
 
 For the current status of the project, please refer to the [project wiki](https://github.com/doitsujin/dxvk/wiki).
 
@@ -132,12 +152,27 @@ ninja install
 ```
 
 #### Compiling manually
+
+**Standard build:**
 ```
 # 64-bit build. For 32-bit builds, replace
 # build-win64.txt with build-win32.txt
 meson setup --cross-file build-win64.txt --buildtype release --prefix /your/dxvk/directory build.w64
 cd build.w64
 ninja install
+```
+
+**Performance-optimized build with asmlib:**
+```
+# Enable asmlib optimizations
+meson setup --cross-file build-win64.txt --buildtype release --prefix /your/dxvk/directory -Denable_asmlib=true build.w64
+cd build.w64
+ninja install
+```
+
+When asmlib is enabled, you'll see in the logs:
+```
+asmlib: Optimized memory functions enabled
 ```
 
 The D3D8, D3D9, D3D10, D3D11 and DXGI DLLs will be located in `/your/dxvk/directory/bin`.
@@ -160,6 +195,43 @@ For non debian based distros, make sure that your mingw-w64-gcc cross compiler
 does have `--enable-threads=posix` enabled during configure. If your distro does
 ship its mingw-w64-gcc binary with `--enable-threads=win32` you might have to
 recompile locally or open a bug at your distro's bugtracker to ask for it. 
+
+## Performance Enhancements (DXVK-Fogged)
+
+This fork includes optional CPU-specific optimizations using **Agner Fog's** asmlib:
+
+### Memory Operation Optimizations
+- Automatically detects CPU capabilities (AVX2, SSE4.2, SSE3, etc.)
+- Optimizes memory-intensive operations in DirectX → Vulkan translation
+- Zero runtime overhead when disabled
+
+### Enabling Optimizations
+Add `-Denable_asmlib=true` to your meson setup command:
+```bash
+meson setup build.w64 --cross-file build-win64.txt -Denable_asmlib=true
+```
+
+When enabled, you'll see in the logs:
+```
+asmlib: Optimized memory functions enabled
+```
+
+### Performance Gains
+Expect improvements in:
+- Texture loading and streaming  
+- Buffer updates and copies
+- Shader compilation and manipulation
+- Overall CPU-side DirectX emulation overhead
+
+### Optimized Functions
+The following standard library functions are replaced with CPU-optimized versions:
+- Memory operations: `memcpy`, `memmove`, `memset`, `memcmp`
+- String operations: `strlen`, `strcpy`, `strcmp`, `strcat`
+
+**Coverage**: 116+ function calls optimized across critical paths:
+- Core DXVK components (69 replacements)
+- D3D implementation layers (22 replacements)  
+- SPIRV/DXBC/WSI components (26 replacements)
 
 # DXVK Native
 

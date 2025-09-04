@@ -6,6 +6,7 @@
 #include "dxgi_swapchain_dispatcher.h"
 
 #include "../util/util_singleton.h"
+#include "../util/util_asmlib.h"
 
 namespace dxvk {
 
@@ -345,7 +346,7 @@ namespace dxvk {
       DXGI_ADAPTER_DESC desc;
       adapter->GetDesc(&desc);
 
-      if (!std::memcmp(&AdapterLuid, &desc.AdapterLuid, sizeof(LUID)))
+      if (!dxvk_memcmp(&AdapterLuid, &desc.AdapterLuid, sizeof(LUID)))
         return adapter->QueryInterface(riid, ppvAdapter);
     }
 

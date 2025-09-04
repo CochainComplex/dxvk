@@ -7,6 +7,7 @@
 
 #include "dxvk_device.h"
 #include "dxvk_context.h"
+#include "../util/util_asmlib.h"
 
 namespace dxvk {
   
@@ -6686,7 +6687,7 @@ namespace dxvk {
           }
         }
 
-        std::memcpy(&m_state.pc.resourceData[binding.getBlockOffset()], &va, sizeof(va));
+        dxvk_memcpy(&m_state.pc.resourceData[binding.getBlockOffset()], &va, sizeof(va));
       }
     }
 
@@ -6707,7 +6708,7 @@ namespace dxvk {
           m_cmd->track(sampler);
         }
 
-        std::memcpy(&m_state.pc.resourceData[binding.getBlockOffset()], &index, sizeof(index));
+        dxvk_memcpy(&m_state.pc.resourceData[binding.getBlockOffset()], &index, sizeof(index));
       }
     }
   }
@@ -7377,10 +7378,10 @@ namespace dxvk {
           uint32_t byteIndex = dwordIndex * sizeof(uint32_t);
           uint32_t byteCount = dwordCount * sizeof(uint32_t);
 
-          std::memcpy(&dstData[rangeOffset],
+          dxvk_memcpy(&dstData[rangeOffset],
             &constantData[rangeOffset], byteIndex);
 
-          std::memcpy(&dstData[rangeOffset + byteIndex],
+          dxvk_memcpy(&dstData[rangeOffset + byteIndex],
             &resourceData[rangeOffset + byteIndex],
             byteCount - byteIndex);
 
@@ -7388,7 +7389,7 @@ namespace dxvk {
           rangeOffset += byteCount;
         }
 
-        std::memcpy(&dstData[rangeOffset],
+        dxvk_memcpy(&dstData[rangeOffset],
           &constantData[rangeOffset], blockSize - rangeOffset);
       }
 

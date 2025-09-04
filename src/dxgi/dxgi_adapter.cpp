@@ -12,6 +12,7 @@
 
 #include "../util/util_luid.h"
 #include "../util/util_win32_compat.h"
+#include "../util/util_asmlib.h"
 
 #include "../wsi/wsi_monitor.h"
 
@@ -200,7 +201,7 @@ namespace dxvk {
     if (pDesc == nullptr)
       return E_INVALIDARG;
 
-    std::memcpy(pDesc->Description, m_desc.Description, sizeof(pDesc->Description));
+    dxvk_memcpy(pDesc->Description, m_desc.Description, sizeof(pDesc->Description));
     pDesc->VendorId               = m_desc.VendorId;
     pDesc->DeviceId               = m_desc.DeviceId;
     pDesc->SubSysId               = m_desc.SubSysId;
@@ -217,7 +218,7 @@ namespace dxvk {
     if (pDesc == nullptr)
       return E_INVALIDARG;
 
-    std::memcpy(pDesc->Description, m_desc.Description, sizeof(pDesc->Description));
+    dxvk_memcpy(pDesc->Description, m_desc.Description, sizeof(pDesc->Description));
     pDesc->VendorId               = m_desc.VendorId;
     pDesc->DeviceId               = m_desc.DeviceId;
     pDesc->SubSysId               = m_desc.SubSysId;
@@ -235,7 +236,7 @@ namespace dxvk {
     if (pDesc == nullptr)
       return E_INVALIDARG;
 
-    std::memcpy(pDesc->Description, m_desc.Description, sizeof(pDesc->Description));
+    dxvk_memcpy(pDesc->Description, m_desc.Description, sizeof(pDesc->Description));
     pDesc->VendorId               = m_desc.VendorId;
     pDesc->DeviceId               = m_desc.DeviceId;
     pDesc->SubSysId               = m_desc.SubSysId;
@@ -506,7 +507,7 @@ namespace dxvk {
     desc.ComputePreemptionGranularity   = DXGI_COMPUTE_PREEMPTION_DMA_BUFFER_BOUNDARY;
 
     if (deviceProp.vk11.deviceLUIDValid)
-      std::memcpy(&desc.AdapterLuid, deviceProp.vk11.deviceLUID, VK_LUID_SIZE);
+      dxvk_memcpy(&desc.AdapterLuid, deviceProp.vk11.deviceLUID, VK_LUID_SIZE);
     else
       desc.AdapterLuid = GetAdapterLUID(m_index);
 

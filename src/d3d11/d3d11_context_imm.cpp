@@ -5,6 +5,7 @@
 #include "d3d11_texture.h"
 
 #include "../util/util_win32_compat.h"
+#include "../util/util_asmlib.h"
 
 constexpr static uint32_t MinFlushIntervalUs = 750;
 constexpr static uint32_t IncFlushIntervalUs = 250;
@@ -416,7 +417,7 @@ namespace dxvk {
           ctx->invalidateBuffer(cBuffer, std::move(cBufferSlice));
         });
 
-        std::memcpy(dstPtr, srcPtr, bufferSize);
+        dxvk_memcpy(dstPtr, srcPtr, bufferSize);
         pMappedResource->pData      = dstPtr;
         pMappedResource->RowPitch   = bufferSize;
         pMappedResource->DepthPitch = bufferSize;
@@ -606,7 +607,7 @@ namespace dxvk {
         });
 
         if (doFlags & DoPreserve)
-          std::memcpy(dstPtr, srcPtr, bufferSize);
+          dxvk_memcpy(dstPtr, srcPtr, bufferSize);
 
         ThrottleDiscard(bufferSize);
       } else {
@@ -769,7 +770,7 @@ namespace dxvk {
       mapPtr = pDstBuffer->GetMapPtr();
     }
 
-    std::memcpy(reinterpret_cast<char*>(mapPtr) + Offset, pSrcData, Length);
+    dxvk_memcpy(reinterpret_cast<char*>(mapPtr) + Offset, pSrcData, Length);
   }
 
 

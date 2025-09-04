@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include "d3d11_context_imm.h"
+#include "../util/util_asmlib.h"
 #include "d3d11_device.h"
 #include "d3d11_initializer.h"
 
@@ -87,10 +88,10 @@ namespace dxvk {
     auto icbSlice = pShader->GetIcb();
     auto srcSlice = m_stagingBuffer.alloc(icbSlice.length());
 
-    std::memcpy(srcSlice.mapPtr(0), pIcbData, IcbSize);
+    dxvk_memcpy(srcSlice.mapPtr(0), pIcbData, IcbSize);
 
     if (IcbSize < icbSlice.length())
-      std::memset(srcSlice.mapPtr(IcbSize), 0, icbSlice.length() - IcbSize);
+      dxvk_memset(srcSlice.mapPtr(IcbSize), 0, icbSlice.length() - IcbSize);
 
     EmitCs([
       cIcbSlice = std::move(icbSlice),
@@ -113,7 +114,7 @@ namespace dxvk {
 
     if (pInitialData != nullptr && pInitialData->pSysMem != nullptr) {
       auto stagingSlice = m_stagingBuffer.alloc(buffer->info().size);
-      std::memcpy(stagingSlice.mapPtr(0), pInitialData->pSysMem, stagingSlice.length());
+      dxvk_memcpy(stagingSlice.mapPtr(0), pInitialData->pSysMem, stagingSlice.length());
 
       m_transferCommands += 1;
 
@@ -146,9 +147,9 @@ namespace dxvk {
     // to the mapped memory region instead of doing it on
     // the GPU. Same goes for zero-initialization.
     if (pInitialData && pInitialData->pSysMem)
-      std::memcpy(pBuffer->GetMapPtr(), pInitialData->pSysMem, pBuffer->Desc()->ByteWidth);
+      dxvk_memcpy(pBuffer->GetMapPtr(), pInitialData->pSysMem, pBuffer->Desc()->ByteWidth);
     else
-      std::memset(pBuffer->GetMapPtr(), 0, pBuffer->Desc()->ByteWidth);
+      dxvk_memset(pBuffer->GetMapPtr(), 0, pBuffer->Desc()->ByteWidth);
   }
 
 
@@ -239,7 +240,7 @@ namespace dxvk {
       if (pTexture->HasPersistentBuffers()) {
         for (uint32_t i = 0; i < pTexture->CountSubresources(); i++) {
           auto layout = pTexture->GetSubresourceLayout(formatInfo->aspectMask, i);
-          std::memset(pTexture->GetMapPtr(i, layout.Offset), 0, layout.Size);
+          dxvk_memset(pTexture->GetMapPtr(i, layout.Offset), 0, layout.Size);
         }
       }
     }
@@ -284,15 +285,15 @@ namespace dxvk {
                       + y * initialData.SysMemPitch
                       + z * initialData.SysMemSlicePitch;
 
-              std::memcpy(dst, src, size);
+              dxvk_memcpy(dst, src, size);
 
               if (size < layout.RowPitch)
-                std::memset(reinterpret_cast<char*>(dst) + size, 0, layout.RowPitch - size);
+                dxvk_memset(reinterpret_cast<char*>(dst) + size, 0, layout.RowPitch - size);
             }
           }
         } else {
           void* dst = pTexture->GetMapPtr(subresourceIndex, layout.Offset);
-          std::memset(dst, 0, layout.Size);
+          dxvk_memset(dst, 0, layout.Size);
         }
       }
     }

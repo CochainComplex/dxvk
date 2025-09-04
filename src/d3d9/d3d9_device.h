@@ -39,6 +39,7 @@
 
 #include "../util/util_flush.h"
 #include "../util/util_lru.h"
+#include "../util/util_asmlib.h"
 
 namespace dxvk {
 
@@ -1347,7 +1348,7 @@ namespace dxvk {
       uint8_t* data = reinterpret_cast<uint8_t*>(buffer);
       // Don't copy excess data if we don't end up needing it.
       dataSize = std::min(dataSize, bufferSize);
-      std::memcpy(data, userData, dataSize);
+      dxvk_memcpy(data, userData, dataSize);
       // Pad out with 0 to make buffer range checks happy
       // Some games have components out of range in the vertex decl
       // that they don't read from the shader.
@@ -1357,7 +1358,7 @@ namespace dxvk {
       // So... make the actual buffer the range that satisfies the range of the vertex
       // declaration and pad with 0s outside of it.
       if (dataSize < bufferSize)
-        std::memset(data + dataSize, 0, bufferSize - dataSize);
+        dxvk_memset(data + dataSize, 0, bufferSize - dataSize);
     }
 
     // So we don't do OOB.
@@ -1431,13 +1432,13 @@ namespace dxvk {
           const float* source = set->fConsts[StartRegister].data;
           const size_t size   = Count * sizeof(Vector4);
 
-          std::memcpy(pConstantData, source, size);
+          dxvk_memcpy(pConstantData, source, size);
         }
         else if constexpr (ConstantType == D3D9ConstantType::Int) {
           const int*  source = set->iConsts[StartRegister].data;
           const size_t size  = Count * sizeof(Vector4i);
 
-          std::memcpy(pConstantData, source, size);
+          dxvk_memcpy(pConstantData, source, size);
         }
         else {
           for (uint32_t i = 0; i < Count; i++) {

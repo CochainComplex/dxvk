@@ -17,6 +17,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "sha1.h"
+#include "../util_asmlib.h"
 
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
 
@@ -54,7 +55,7 @@ SHA1Transform(uint32_t state[5], const uint8_t* buffer)
 	uint8_t workspace[SHA1_BLOCK_LENGTH];
 	CHAR64LONG16 *block = (CHAR64LONG16 *)workspace;
 
-	(void)memcpy(block, buffer, SHA1_BLOCK_LENGTH);
+	(void)dxvk_memcpy(block, buffer, SHA1_BLOCK_LENGTH);
 
 	/* Copy context->state[] to working vars */
 	a = state[0];
@@ -125,7 +126,7 @@ SHA1Update(SHA1_CTX *context, const uint8_t *data, size_t len)
 	j = (size_t)((context->count >> 3) & 63);
 	context->count += (len << 3);
 	if ((j + len) > 63) {
-		(void)memcpy(&context->buffer[j], data, (i = 64-j));
+		(void)dxvk_memcpy(&context->buffer[j], data, (i = 64-j));
 		SHA1Transform(context->state, context->buffer);
 		for ( ; i + 63 < len; i += 64)
 			SHA1Transform(context->state, (uint8_t *)&data[i]);
@@ -133,7 +134,7 @@ SHA1Update(SHA1_CTX *context, const uint8_t *data, size_t len)
 	} else {
 		i = 0;
 	}
-	(void)memcpy(&context->buffer[j], &data[i], len - i);
+	(void)dxvk_memcpy(&context->buffer[j], &data[i], len - i);
 }
 
 
@@ -166,5 +167,5 @@ SHA1Final(uint8_t digest[SHA1_DIGEST_LENGTH], SHA1_CTX *context)
 		digest[i] = (uint8_t)
 		   ((context->state[i>>2] >> ((3-(i & 3)) * 8) ) & 255);
 	}
-	memset(context, 0, sizeof(*context));
+	dxvk_memset(context, 0, sizeof(*context));
 }

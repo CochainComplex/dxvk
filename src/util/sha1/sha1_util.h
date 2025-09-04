@@ -3,6 +3,7 @@
 #include <array>
 #include <cstring>
 #include <string>
+#include "../util_asmlib.h"
 
 namespace dxvk {
   
@@ -31,7 +32,7 @@ namespace dxvk {
     }
     
     bool operator == (const Sha1Hash& other) const {
-      return !std::memcmp(
+      return !dxvk_memcmp(
         this->m_digest.data(),
         other.m_digest.data(),
         other.m_digest.size());

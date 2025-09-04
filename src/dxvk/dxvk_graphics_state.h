@@ -2,6 +2,7 @@
 
 #include "dxvk_format.h"
 #include "dxvk_limits.h"
+#include "../util/util_asmlib.h"
 
 #include <cstring>
 
@@ -258,7 +259,7 @@ namespace dxvk {
     }
 
     bool eq(const DxvkRsInfo& other) const {
-      return !std::memcmp(this, &other, sizeof(*this));
+      return !dxvk_memcmp(this, &other, sizeof(*this));
     }
 
   private:
@@ -627,15 +628,15 @@ namespace dxvk {
    */
   struct alignas(32) DxvkGraphicsPipelineStateInfo {
     DxvkGraphicsPipelineStateInfo() {
-      std::memset(this, 0, sizeof(*this));
+      dxvk_memset(this, 0, sizeof(*this));
     }
 
     DxvkGraphicsPipelineStateInfo(const DxvkGraphicsPipelineStateInfo& other) {
-      std::memcpy(this, &other, sizeof(*this));
+      dxvk_memcpy(this, &other, sizeof(*this));
     }
     
     DxvkGraphicsPipelineStateInfo& operator = (const DxvkGraphicsPipelineStateInfo& other) {
-      std::memcpy(this, &other, sizeof(*this));
+      dxvk_memcpy(this, &other, sizeof(*this));
       return *this;
     }
     
@@ -723,15 +724,15 @@ namespace dxvk {
    */
   struct alignas(32) DxvkComputePipelineStateInfo {
     DxvkComputePipelineStateInfo() {
-      std::memset(this, 0, sizeof(*this));
+      dxvk_memset(this, 0, sizeof(*this));
     }
 
     DxvkComputePipelineStateInfo(const DxvkComputePipelineStateInfo& other) {
-      std::memcpy(this, &other, sizeof(*this));
+      dxvk_memcpy(this, &other, sizeof(*this));
     }
     
     DxvkComputePipelineStateInfo& operator = (const DxvkComputePipelineStateInfo& other) {
-      std::memcpy(this, &other, sizeof(*this));
+      dxvk_memcpy(this, &other, sizeof(*this));
       return *this;
     }
     

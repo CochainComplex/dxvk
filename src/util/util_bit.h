@@ -30,6 +30,7 @@
 
 #include "util_likely.h"
 #include "util_math.h"
+#include "util_asmlib.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -46,7 +47,7 @@ namespace dxvk::bit {
     static_assert(std::is_trivially_copyable<J>::value && std::is_trivial<T>::value);
 
     T dst;
-    std::memcpy(&dst, &src, sizeof(T));
+    dxvk_memcpy(&dst, &src, sizeof(T));
     return dst;
   }
   
@@ -248,7 +249,7 @@ namespace dxvk::bit {
       _mm_stream_si128(ptr + 3u, zero);
     }
     #else
-    std::memset(mem, 0, size);
+    dxvk_memset(mem, 0, size);
     #endif
   }
 
@@ -301,7 +302,7 @@ namespace dxvk::bit {
 
     return true;
     #else
-    return !std::memcmp(a, b, sizeof(T));
+    return !dxvk_memcmp(a, b, sizeof(T));
     #endif
   }
 

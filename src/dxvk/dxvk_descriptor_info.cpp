@@ -4,6 +4,7 @@
 #include "dxvk_device.h"
 
 #include "../util/util_bit.h"
+#include "../util/util_asmlib.h"
 
 namespace dxvk {
 
@@ -39,7 +40,7 @@ namespace dxvk {
       } break;
     }
     #else
-    std::memcpy(dst, src, Size);
+    dxvk_memcpy(dst, src, Size);
     #endif
   }
 
@@ -72,7 +73,7 @@ namespace dxvk {
       } break;
     }
     #else
-    std::memset(dst, 0, Size);
+    dxvk_memset(dst, 0, Size);
     #endif
   }
 
@@ -228,7 +229,7 @@ namespace dxvk {
     auto srcPtr = descriptor + range.srcIndex;
 
     for (uint32_t i = 0u; i < range.descriptorCount; i++) {
-      std::memcpy(dstPtr, srcPtr[i]->descriptor.data(), range.descriptorSize);
+      dxvk_memcpy(dstPtr, srcPtr[i]->descriptor.data(), range.descriptorSize);
       dstPtr += range.descriptorSize;
     }
   }
@@ -240,7 +241,7 @@ namespace dxvk {
     const DxvkDescriptorUpdateRange&  range) {
     auto dstPtr = reinterpret_cast<char*>(dst) + range.dstOffset;
 
-    std::memset(dstPtr, 0, range.descriptorSize);
+    dxvk_memset(dstPtr, 0, range.descriptorSize);
   }
 
 

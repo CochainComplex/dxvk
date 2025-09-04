@@ -1,4 +1,5 @@
 #include "dxvk_device.h"
+#include "../util/util_asmlib.h"
 
 namespace dxvk {
   
@@ -78,7 +79,7 @@ namespace dxvk {
       VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    std::memset(buffer->mapPtr(0), 0, info.size);
+    dxvk_memset(buffer->mapPtr(0), 0, info.size);
     return buffer;
   }
   

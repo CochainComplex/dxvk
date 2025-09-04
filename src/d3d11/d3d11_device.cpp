@@ -7,6 +7,7 @@
 
 #include "../dxvk/dxvk_adapter.h"
 #include "../dxvk/dxvk_instance.h"
+#include "../util/util_asmlib.h"
 
 #include "d3d11_buffer.h"
 #include "d3d11_class_linkage.h"
@@ -912,7 +913,7 @@ namespace dxvk {
       const char* semantic = hashXfb.entries[i].semanticName;
 
       if (semantic) {
-        chunks.push_back({ semantic, std::strlen(semantic) });
+        chunks.push_back({ semantic, dxvk_strlen(semantic) });
         hashXfb.entries[i].semanticName = nullptr;
       }
     }

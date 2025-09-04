@@ -2,6 +2,7 @@
 #include "dxvk_pipemanager.h"
 #include "dxvk_shader.h"
 #include "dxvk_shader_io.h"
+#include "../util/util_asmlib.h"
 
 #include <dxvk_dummy_frag.h>
 
@@ -145,7 +146,7 @@ namespace dxvk {
     moduleId.createInfo = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_MODULE_IDENTIFIER_CREATE_INFO_EXT };
     moduleId.createInfo.identifierSize = identifierSize;
     moduleId.createInfo.pIdentifier = moduleId.data.data();
-    std::memcpy(moduleId.data.data(), identifier.identifier, identifierSize);
+    dxvk_memcpy(moduleId.data.data(), identifier.identifier, identifierSize);
 
     // Set up stage info using the module identifier
     auto& stageInfo = m_stageInfos[m_stageCount];

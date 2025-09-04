@@ -3,6 +3,7 @@
 #include <cstdlib>
 
 #include "com_private_data.h"
+#include "../util_asmlib.h"
 
 namespace dxvk {
   
@@ -15,7 +16,7 @@ namespace dxvk {
     m_type(ComPrivateDataType::Data),
     m_size(size),
     m_data(std::malloc(size)) {
-    std::memcpy(m_data, data, size);
+    dxvk_memcpy(m_data, data, size);
   }
   
   
@@ -85,9 +86,9 @@ namespace dxvk {
       if (m_type == ComPrivateDataType::Iface) {
         if (m_iface)
           m_iface->AddRef();
-        std::memcpy(data, &m_iface, minSize);
+        dxvk_memcpy(data, &m_iface, minSize);
       } else {
-        std::memcpy(data, m_data, minSize);
+        dxvk_memcpy(data, m_data, minSize);
       }
     }
     

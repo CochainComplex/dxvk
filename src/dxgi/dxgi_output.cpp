@@ -13,6 +13,7 @@
 #include "dxgi_swapchain.h"
 
 #include "../dxvk/dxvk_format.h"
+#include "../util/util_asmlib.h"
 
 #include "../util/util_misc.h"
 #include "../util/util_sleep.h"
@@ -206,7 +207,7 @@ namespace dxvk {
     HRESULT hr = GetDesc1(&desc);
 
     if (SUCCEEDED(hr)) {
-      std::memcpy(pDesc->DeviceName, desc.DeviceName, sizeof(pDesc->DeviceName));
+      dxvk_memcpy(pDesc->DeviceName, desc.DeviceName, sizeof(pDesc->DeviceName));
       pDesc->DesktopCoordinates = desc.DesktopCoordinates;
       pDesc->AttachedToDesktop  = desc.AttachedToDesktop;
       pDesc->Rotation           = desc.Rotation;

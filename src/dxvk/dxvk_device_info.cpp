@@ -7,6 +7,7 @@
 #include "dxvk_device_info.h"
 #include "dxvk_instance.h"
 #include "dxvk_limits.h"
+#include "../util/util_asmlib.h"
 
 namespace dxvk {
 
@@ -164,7 +165,7 @@ namespace dxvk {
     if (*size > sizeof(m_featuresEnabled))
       *size = sizeof(m_featuresEnabled);
 
-    std::memcpy(data, &m_featuresEnabled, *size);
+    dxvk_memcpy(data, &m_featuresEnabled, *size);
     return *size >= sizeof(m_featuresEnabled);
   }
 
@@ -316,13 +317,13 @@ namespace dxvk {
     // running on older (pre-Turing) Nvidia GPUs.
     m_hasMeshShader = std::find_if(extensions.begin(), extensions.end(),
       [] (const VkExtensionProperties& ext) {
-        return !std::strcmp(ext.extensionName, VK_EXT_MESH_SHADER_EXTENSION_NAME);
+        return !dxvk_strcmp(ext.extensionName, VK_EXT_MESH_SHADER_EXTENSION_NAME);
       }) != extensions.end();
 
     // HACK: Use fmask extension to detect pre-RDNA3 hardware.
     m_hasFmask = std::find_if(extensions.begin(), extensions.end(),
       [] (const VkExtensionProperties& ext) {
-        return !std::strcmp(ext.extensionName, VK_AMD_SHADER_FRAGMENT_MASK_EXTENSION_NAME);
+        return !dxvk_strcmp(ext.extensionName, VK_AMD_SHADER_FRAGMENT_MASK_EXTENSION_NAME);
       }) != extensions.end();
 
     // Use the supported spec version as a way to indicate extension support.

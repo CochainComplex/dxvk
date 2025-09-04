@@ -5,6 +5,7 @@
 #include "dxvk_openvr.h"
 #include "dxvk_openxr.h"
 #include "dxvk_platform_exts.h"
+#include "../util/util_asmlib.h"
 
 #include "../wsi/wsi_platform.h"
 
@@ -26,6 +27,12 @@ namespace dxvk {
     Logger::info(str::format("Game: ", env::getExeName()));
     Logger::info(str::format("DXVK: ", DXVK_VERSION));
     Logger::info(str::format("Build: ", DXVK_TARGET, " ", DXVK_COMPILER, " ", DXVK_COMPILER_VERSION));
+
+    // Initialize asmlib for optimized memory functions
+#ifdef DXVK_USE_ASMLIB
+    dxvk::asm_dispatch::init();
+    Logger::info("asmlib: Optimized memory functions enabled");
+#endif
 
     wsi::init();
 
@@ -80,7 +87,7 @@ namespace dxvk {
     for (const auto& adapter : m_adapters) {
       const auto& vk11 = adapter->deviceProperties().vk11;
 
-      if (vk11.deviceLUIDValid && !std::memcmp(luid, vk11.deviceLUID, VK_LUID_SIZE))
+      if (vk11.deviceLUIDValid && !dxvk_memcmp(luid, vk11.deviceLUID, VK_LUID_SIZE))
         return adapter;
     }
 

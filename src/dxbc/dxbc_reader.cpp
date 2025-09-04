@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include "dxbc_reader.h"
+#include "../util/util_asmlib.h"
 
 namespace dxvk {
   
@@ -25,7 +26,7 @@ namespace dxvk {
   void DxbcReader::read(void* dst, size_t n) {
     if (m_pos + n > m_size)
       throw DxvkError("DxbcReader::read: Unexpected end of file");
-    std::memcpy(dst, m_data + m_pos, n);
+    dxvk_memcpy(dst, m_data + m_pos, n);
     m_pos += n;
   }
   

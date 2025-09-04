@@ -5,6 +5,7 @@
 #include "../../util/util_string.h"
 #include "../../util/log/log.h"
 #include "../../util/util_string.h"
+#include "../../util/util_asmlib.h"
 
 #include <cstring>
 #include <set>
@@ -102,7 +103,7 @@ namespace dxvk::wsi {
       uint32_t i;
 
       for (i = 0; i < numLUIDs; ++i) {
-        if (!std::memcmp(&path.sourceInfo.adapterId, adapterLUID[i], sizeof(path.sourceInfo.adapterId)))
+        if (!dxvk_memcmp(&path.sourceInfo.adapterId, adapterLUID[i], sizeof(path.sourceInfo.adapterId)))
           break;
       }
 
@@ -146,7 +147,7 @@ namespace dxvk::wsi {
       return false;
     }
 
-    std::memcpy(Name, monInfo.szDevice, sizeof(Name));
+    dxvk_memcpy(Name, monInfo.szDevice, sizeof(Name));
 
     return true;
   }
@@ -322,17 +323,17 @@ namespace dxvk::wsi {
     const HDEVINFO devInfo = ::SetupDiGetClassDevsW(&GUID_DEVINTERFACE_MONITOR, nullptr, nullptr, DIGCF_DEVICEINTERFACE);
 
     SP_DEVICE_INTERFACE_DATA interfaceData;
-    memset(&interfaceData, 0, sizeof(interfaceData));
+    dxvk_memset(&interfaceData, 0, sizeof(interfaceData));
     interfaceData.cbSize = sizeof(interfaceData);
 
     for (DWORD monitorIdx = 0; ::SetupDiEnumDeviceInterfaces(devInfo, nullptr, &GUID_DEVINTERFACE_MONITOR, monitorIdx, &interfaceData); monitorIdx++) {
       DxvkDeviceInterfaceDetail detailData;
       // Josh: I'm taking no chances here. I don't trust this API at all.
-      memset(&detailData, 0, sizeof(detailData));
+      dxvk_memset(&detailData, 0, sizeof(detailData));
       detailData.base.cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W);
 
       SP_DEVINFO_DATA devInfoData;
-      memset(&devInfoData, 0, sizeof(devInfoData));
+      dxvk_memset(&devInfoData, 0, sizeof(devInfoData));
       devInfoData.cbSize = sizeof(devInfoData);
 
       if (!::SetupDiGetDeviceInterfaceDetailW(devInfo, &interfaceData, &detailData.base, sizeof(detailData), nullptr, &devInfoData))

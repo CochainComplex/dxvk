@@ -4,6 +4,7 @@
 
 #include "../util/util_gdi.h"
 #include "../util/util_win32_compat.h"
+#include "../util/util_asmlib.h"
 
 namespace dxvk {
   
@@ -86,7 +87,7 @@ namespace dxvk {
       context->Map(m_readback, 0, D3D11_MAP_READ, 0, &sr);
 
       for (uint32_t i = 0; i < tex->Height; i++) {
-        std::memcpy(rowData + rowLength * i,
+        dxvk_memcpy(rowData + rowLength * i,
           reinterpret_cast<const char*>(sr.pData) + sr.RowPitch * i,
           rowLength);
       }

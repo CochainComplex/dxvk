@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include "spirv_module.h"
+#include "../util/util_asmlib.h"
 
 namespace dxvk {
   
@@ -236,7 +237,7 @@ namespace dxvk {
   uint32_t SpirvModule::consti32(
           int32_t                 v) {
     std::array<uint32_t, 1> data;
-    std::memcpy(data.data(), &v, sizeof(v));
+    dxvk_memcpy(data.data(), &v, sizeof(v));
     
     return this->defConst(
       spv::OpConstant,
@@ -249,7 +250,7 @@ namespace dxvk {
   uint32_t SpirvModule::consti64(
           int64_t                 v) {
     std::array<uint32_t, 2> data;
-    std::memcpy(data.data(), &v, sizeof(v));
+    dxvk_memcpy(data.data(), &v, sizeof(v));
     
     return this->defConst(
       spv::OpConstant,
@@ -262,7 +263,7 @@ namespace dxvk {
   uint32_t SpirvModule::constu32(
           uint32_t                v) {
     std::array<uint32_t, 1> data;
-    std::memcpy(data.data(), &v, sizeof(v));
+    dxvk_memcpy(data.data(), &v, sizeof(v));
     
     return this->defConst(
       spv::OpConstant,
@@ -275,7 +276,7 @@ namespace dxvk {
   uint32_t SpirvModule::constu64(
           uint64_t                v) {
     std::array<uint32_t, 2> data;
-    std::memcpy(data.data(), &v, sizeof(v));
+    dxvk_memcpy(data.data(), &v, sizeof(v));
     
     return this->defConst(
       spv::OpConstant,
@@ -288,7 +289,7 @@ namespace dxvk {
   uint32_t SpirvModule::constf32(
           float                   v) {
     std::array<uint32_t, 1> data;
-    std::memcpy(data.data(), &v, sizeof(v));
+    dxvk_memcpy(data.data(), &v, sizeof(v));
     
     return this->defConst(
       spv::OpConstant,
@@ -301,7 +302,7 @@ namespace dxvk {
   uint32_t SpirvModule::constf64(
           double                  v) {
     std::array<uint32_t, 2> data;
-    std::memcpy(data.data(), &v, sizeof(v));
+    dxvk_memcpy(data.data(), &v, sizeof(v));
     
     return this->defConst(
       spv::OpConstant,

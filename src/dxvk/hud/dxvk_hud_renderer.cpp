@@ -1,4 +1,5 @@
 #include "dxvk_hud_renderer.h"
+#include "../../util/util_asmlib.h"
 
 #include <hud_text_frag.h>
 #include <hud_text_vert.h>
@@ -108,7 +109,7 @@ namespace dxvk::hud {
     draw.color = color;
 
     m_textData.resize(draw.textOffset + draw.textLength);
-    std::memcpy(&m_textData[draw.textOffset], text.data(), draw.textLength);
+    dxvk_memcpy(&m_textData[draw.textOffset], text.data(), draw.textLength);
   }
 
 
@@ -164,12 +165,12 @@ namespace dxvk::hud {
     }
 
     // Upload aligned text data in such a way that we write full cache lines
-    std::memcpy(m_textBuffer->mapPtr(0), m_textData.data(), textSizeAligned);
+    dxvk_memcpy(m_textBuffer->mapPtr(0), m_textData.data(), textSizeAligned);
 
     // Upload draw parameters and pad aligned region with zeroes
     size_t drawInfoCopySize = m_textDraws.size() * sizeof(HudTextDrawInfo);
-    std::memcpy(m_textBuffer->mapPtr(textSizeAligned), m_textDraws.data(), drawInfoCopySize);
-    std::memset(m_textBuffer->mapPtr(textSizeAligned + drawInfoCopySize), 0, drawInfoSize - drawInfoCopySize);
+    dxvk_memcpy(m_textBuffer->mapPtr(textSizeAligned), m_textDraws.data(), drawInfoCopySize);
+    dxvk_memset(m_textBuffer->mapPtr(textSizeAligned + drawInfoCopySize), 0, drawInfoSize - drawInfoCopySize);
 
     // Emit indirect draw parameters
     size_t drawArgWriteSize = m_textDraws.size() * sizeof(VkDrawIndirectCommand);
@@ -184,7 +185,7 @@ namespace dxvk::hud {
       drawArgs[i].firstInstance = 0u;
     }
 
-    std::memset(m_textBuffer->mapPtr(drawArgOffset + drawArgWriteSize), 0, drawArgsSize - drawArgWriteSize);
+    dxvk_memset(m_textBuffer->mapPtr(drawArgOffset + drawArgWriteSize), 0, drawArgsSize - drawArgWriteSize);
 
     // Draw the actual text
     DxvkResourceBufferInfo textBufferInfo = m_textBuffer->getSliceInfo(textSizeAligned, drawInfoSize);
@@ -369,8 +370,8 @@ namespace dxvk::hud {
       dst.originY = src.originY;
     }
 
-    std::memcpy(uploadBuffer->mapPtr(0), &glyphData, bufferDataSize);
-    std::memcpy(uploadBuffer->mapPtr(bufferDataSize), g_hudFont.texture, textureDataSize);
+    dxvk_memcpy(uploadBuffer->mapPtr(0), &glyphData, bufferDataSize);
+    dxvk_memcpy(uploadBuffer->mapPtr(bufferDataSize), g_hudFont.texture, textureDataSize);
 
     auto uploadSlice = uploadBuffer->getSliceInfo();
     auto fontSlice = m_fontBuffer->getSliceInfo();

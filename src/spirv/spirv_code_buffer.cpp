@@ -2,6 +2,7 @@
 #include <cstring>
 
 #include "spirv_code_buffer.h"
+#include "../util/util_asmlib.h"
 
 namespace dxvk {
   
@@ -18,7 +19,7 @@ namespace dxvk {
   SpirvCodeBuffer::SpirvCodeBuffer(uint32_t size, const uint32_t* data)
   : m_ptr(size) {
     m_code.resize(size);
-    std::memcpy(m_code.data(), data, size * sizeof(uint32_t));
+    dxvk_memcpy(m_code.data(), data, size * sizeof(uint32_t));
   }
   
   
@@ -33,7 +34,7 @@ namespace dxvk {
     buffer.resize(stream.gcount());
     
     m_code.resize(buffer.size() / sizeof(uint32_t));
-    std::memcpy(reinterpret_cast<char*>(m_code.data()),
+    dxvk_memcpy(reinterpret_cast<char*>(m_code.data()),
       buffer.data(), m_code.size() * sizeof(uint32_t));
     
     m_ptr = m_code.size();
@@ -70,7 +71,7 @@ namespace dxvk {
             uint32_t* dst = this->m_code.data();
       const uint32_t* src = other.m_code.data();
       
-      std::memcpy(dst + size, src, other.size());
+      dxvk_memcpy(dst + size, src, other.size());
       m_ptr += other.m_code.size();
     }
   }
@@ -103,7 +104,7 @@ namespace dxvk {
   void SpirvCodeBuffer::putFloat32(float value) {
     uint32_t tmp;
     static_assert(sizeof(tmp) == sizeof(value));
-    std::memcpy(&tmp, &value, sizeof(value));
+    dxvk_memcpy(&tmp, &value, sizeof(value));
     this->putInt32(tmp);
   }
   
@@ -111,7 +112,7 @@ namespace dxvk {
   void SpirvCodeBuffer::putFloat64(double value) {
     uint64_t tmp;
     static_assert(sizeof(tmp) == sizeof(value));
-    std::memcpy(&tmp, &value, sizeof(value));
+    dxvk_memcpy(&tmp, &value, sizeof(value));
     this->putInt64(tmp);
   }
   
@@ -153,7 +154,7 @@ namespace dxvk {
 
   uint32_t SpirvCodeBuffer::strLen(const char* str) {
     // Null-termination plus padding
-    return (std::strlen(str) + 4) / 4;
+    return (dxvk_strlen(str) + 4) / 4;
   }
   
   

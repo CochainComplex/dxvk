@@ -8,6 +8,7 @@
 #include "d3d11_cuda.h"
 
 #include "../util/log/log.h"
+#include "../util/util_asmlib.h"
 
 namespace dxvk {
   
@@ -188,7 +189,7 @@ namespace dxvk {
 
     launchInfo.paramSize = ParamSize;
     launchInfo.params.resize(launchInfo.paramSize);
-    std::memcpy(launchInfo.params.data(), pParams, ParamSize);
+    dxvk_memcpy(launchInfo.params.data(), pParams, ParamSize);
 
     launchInfo.cuLaunchConfig[0] = reinterpret_cast<void*>(0x01); // CU_LAUNCH_PARAM_BUFFER_POINTER
     launchInfo.cuLaunchConfig[1] = launchInfo.params.data();
