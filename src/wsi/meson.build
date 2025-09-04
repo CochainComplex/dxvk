@@ -15,7 +15,7 @@ wsi_src = [
   'glfw/wsi_window_glfw.cpp',
 ]
 
-wsi_deps = [ dep_displayinfo ]
+wsi_deps = [ dep_displayinfo ] + asmlib_deps
 
 if platform == 'windows'
   lib_setupapi = cpp.find_library('setupapi')

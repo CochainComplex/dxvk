@@ -16,6 +16,7 @@ dxbc_src = files([
 
 dxbc_lib = static_library('dxbc', dxbc_src,
   include_directories : [ dxvk_include_path ],
+  dependencies        : asmlib_deps,
 )
 
 dxbc_dep = declare_dependency(

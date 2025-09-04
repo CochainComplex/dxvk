@@ -28,6 +28,7 @@ util_src = files([
 
 util_lib = static_library('util', util_src,
   include_directories : [ dxvk_include_path ],
+  dependencies        : asmlib_deps,
 )
 
 util_dep = declare_dependency(

@@ -204,27 +204,35 @@ if get_option('enable_asmlib')
   # Platform and architecture specific library selection
   if platform == 'windows'
     if cpu_family == 'x86_64'
-      asmlib_lib = 'acof64'
+      asmlib_name = 'acof64'
     else
-      asmlib_lib = 'acof32'
+      asmlib_name = 'acof32'
     endif
   else  # Linux/Unix
     if cpu_family == 'x86_64'
-      asmlib_lib = 'aelf64'
+      asmlib_name = 'aelf64'
     else
-      asmlib_lib = 'aelf32'
+      asmlib_name = 'aelf32'
     endif
   endif
   
-  # Add asmlib dependency
-  asmlib_link_args = ['-L' + asmlib_path, '-l' + asmlib_lib]
+  # Find asmlib library using Meson's find_library
+  asmlib_dep = cpp.find_library(asmlib_name, 
+                                 dirs: [asmlib_path],
+                                 static: true,
+                                 required: true)
   
   # Define macro for conditional compilation
   add_project_arguments('-DDXVK_USE_ASMLIB', language: ['c', 'cpp'])
-  add_project_link_arguments(asmlib_link_args, language: ['c', 'cpp'])
   
-  message('asmlib enabled: Using optimized memory functions from ' + asmlib_lib)
+  message('asmlib enabled: Using optimized memory functions from ' + asmlib_name)
+else
+  # When asmlib is disabled, create an empty dependency
+  asmlib_dep = dependency('', required: false)
 endif
+
+# Make asmlib available as a project-wide dependency list
+asmlib_deps = asmlib_dep.found() ? [asmlib_dep] : []
 
 dxvk_include_path = include_directories(dxvk_include_dirs)
 
