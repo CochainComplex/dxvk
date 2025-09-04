@@ -14,40 +14,43 @@
 namespace dxvk {
 
 #if defined(DXVK_USE_VCL) && defined(DXVK_ARCH_X86)
-  // VCL-optimized Vector4 implementation (lean version)
-  // Direct SIMD register storage with zero-overhead VCL operations
+  // VCL-optimized Vector4 implementation following Agner Fog's best practices
+  // Uses union with __m128 for zero-overhead access (Agner's pattern)
   
   struct alignas(16) Vector4 {
-    // Core storage - direct SIMD register with union overlay for compatibility
+    // Union for multiple access patterns - __m128 is primary storage
     union {
-      __m128 xmm;
-      float data[4];
-      struct { float x, y, z, w; };
-      struct { float r, g, b, a; };
+      __m128 xmm;                      // Primary SIMD storage
+      float data[4];                    // Array access
+      struct { float x, y, z, w; };     // Named access
+      struct { float r, g, b, a; };     // Color access
     };
     
-    // Constructors
+    // Constructors - use Vec4f for initialization then extract __m128
     Vector4() : xmm(Vec4f(0.0f)) {}
     Vector4(float splat) : xmm(Vec4f(splat)) {}
     Vector4(float x, float y, float z, float w) : xmm(Vec4f(x, y, z, w)) {}
     Vector4(const float xyzw[4]) : xmm(Vec4f().load(xyzw)) {}
     Vector4(__m128 v) : xmm(v) {}
-    Vector4(const Vec4f& v) : xmm(v) {}
+    Vector4(const Vec4f& v) : xmm(v) {}  // Implicit conversion from Vec4f
     Vector4(const Vector4& other) = default;
     Vector4& operator=(const Vector4& other) = default;
+    
+    // Implicit conversion to Vec4f for VCL operations
+    operator Vec4f() const { return Vec4f(xmm); }
     
     // Element access
     float& operator[](size_t index) { return data[index]; }
     const float& operator[](size_t index) const { return data[index]; }
     
-    // Comparison
+    // Comparison - use VCL's efficient boolean operations
     bool operator==(const Vector4& other) const {
       Vec4fb cmp = Vec4f(xmm) == Vec4f(other.xmm);
       return horizontal_and(cmp);
     }
     bool operator!=(const Vector4& other) const { return !operator==(other); }
     
-    // Arithmetic operators - lean VCL delegation
+    // Arithmetic operators - single Vec4f conversion, implicit conversion back
     Vector4 operator-() const { return -Vec4f(xmm); }
     Vector4 operator+(const Vector4& other) const { return Vec4f(xmm) + Vec4f(other.xmm); }
     Vector4 operator-(const Vector4& other) const { return Vec4f(xmm) - Vec4f(other.xmm); }
@@ -63,23 +66,27 @@ namespace dxvk {
     Vector4& operator/=(float scalar) { xmm = Vec4f(xmm) / scalar; return *this; }
   };
   
-  // Vector4i implementation with VCL
+  // VCL-optimized Vector4i implementation
   struct alignas(16) Vector4i {
     union {
-      __m128i xmm;
-      int32_t data[4];
-      struct { int32_t x, y, z, w; };
-      struct { int32_t r, g, b, a; };
+      __m128i xmm;                     // Primary SIMD storage
+      int32_t data[4];                  // Array access
+      struct { int32_t x, y, z, w; };   // Named access
+      struct { int32_t r, g, b, a; };   // Color access
     };
     
+    // Constructors
     Vector4i() : xmm(Vec4i(0)) {}
     Vector4i(int32_t splat) : xmm(Vec4i(splat)) {}
     Vector4i(int32_t x, int32_t y, int32_t z, int32_t w) : xmm(Vec4i(x, y, z, w)) {}
     Vector4i(const int32_t xyzw[4]) : xmm(Vec4i().load(xyzw)) {}
     Vector4i(__m128i v) : xmm(v) {}
-    Vector4i(const Vec4i& v) : xmm(v) {}
+    Vector4i(const Vec4i& v) : xmm(v) {}  // Implicit conversion from Vec4i
     Vector4i(const Vector4i& other) = default;
     Vector4i& operator=(const Vector4i& other) = default;
+    
+    // Implicit conversion to Vec4i
+    operator Vec4i() const { return Vec4i(xmm); }
     
     int32_t& operator[](size_t index) { return data[index]; }
     const int32_t& operator[](size_t index) const { return data[index]; }
@@ -101,15 +108,12 @@ namespace dxvk {
     Vector4i& operator*=(int32_t scalar) { xmm = Vec4i(xmm) * scalar; return *this; }
   };
   
-  // Essential vector operations used by DXVK
+  // Essential vector operations - PURE VCL, no intrinsics mixing!
   inline float dot(const Vector4& a, const Vector4& b) {
-    // Custom optimized dot product for x86
-    #if defined(__SSE4_1__)
-      return _mm_cvtss_f32(_mm_dp_ps(a.xmm, b.xmm, 0xF1));
-    #else
-      Vec4f product = Vec4f(a.xmm) * Vec4f(b.xmm);
-      return horizontal_add(product);
-    #endif
+    // CRITICAL FIX: Use pure VCL, never mix with SSE intrinsics
+    // This avoids AVX-SSE transition penalties
+    Vec4f product = Vec4f(a.xmm) * Vec4f(b.xmm);
+    return horizontal_add(product);
   }
   
   inline float lengthSqr(const Vector4& a) { return dot(a, a); }
@@ -120,11 +124,11 @@ namespace dxvk {
     return len != 0.0f ? a / len : Vector4(0.0f);
   }
   
-  // Hot path: NaN replacement for D3D9 shader constants
+  // Hot path: NaN replacement for D3D9 shader constants - pure VCL
   inline Vector4 replaceNaN(const Vector4& a) {
     Vec4f v(a.xmm);
     Vec4fb nan_mask = is_nan(v);
-    return select(nan_mask, Vec4f(0.0f), v);
+    return select(nan_mask, Vec4f(0.0f), v);  // Returns Vec4f, implicit conversion to Vector4
   }
   
   // Scalar multiplication (both orders)
