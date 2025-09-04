@@ -14,7 +14,6 @@ cpp_args = [
   '-msse',
   '-msse2',
   '-msse3',
-  '-mno-avx',  # Prevent AVX to avoid SSE-AVX transition penalties
   '-mfpmath=sse',
   '-Wimplicit-fallthrough',
   # gcc
@@ -35,7 +34,6 @@ c_args = [
   '-msse',
   '-msse2',
   '-msse3',
-  '-mno-avx',  # Prevent AVX to avoid SSE-AVX transition penalties
   '-mfpmath=sse',
   '-Wimplicit-fallthrough',
   # gcc
@@ -204,18 +202,18 @@ if get_option('enable_asmlib')
   asmlib_path = meson.current_source_dir() / 'include' / 'asmlib'
   
   # Platform and architecture specific library selection
-  # Use 'o' versions (SSE-only) to prevent AVX-SSE transition penalties
+  # Use full dispatcher versions with AVX support for optimal performance
   if platform == 'windows'
     if cpu_family == 'x86_64'
-      asmlib_name = 'acof64o'  # SSE-only version
+      asmlib_name = 'acof64'  # Full dispatcher with AVX support
     else
-      asmlib_name = 'acof32o'  # SSE-only version
+      asmlib_name = 'acof32'  # Full dispatcher with AVX support
     endif
   else  # Linux/Unix
     if cpu_family == 'x86_64'
-      asmlib_name = 'aelf64o'  # SSE-only version
+      asmlib_name = 'aelf64'  # Full dispatcher with AVX support
     else
-      asmlib_name = 'aelf32o'  # SSE-only version
+      asmlib_name = 'aelf32'  # Full dispatcher with AVX support
     endif
   endif
   
