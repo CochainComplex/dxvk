@@ -20,18 +20,18 @@ namespace dxvk {
     // Constructors
     inline Matrix4() {
       // Identity matrix
-      rows[0] = _mm_set_ps(0, 0, 0, 1);
-      rows[1] = _mm_set_ps(0, 0, 1, 0);
-      rows[2] = _mm_set_ps(0, 1, 0, 0);
-      rows[3] = _mm_set_ps(1, 0, 0, 0);
+      rows[0] = Vec4f(1.0f, 0.0f, 0.0f, 0.0f);
+      rows[1] = Vec4f(0.0f, 1.0f, 0.0f, 0.0f);
+      rows[2] = Vec4f(0.0f, 0.0f, 1.0f, 0.0f);
+      rows[3] = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
     }
     
     inline explicit Matrix4(float x) {
       // Scalar matrix
-      rows[0] = _mm_set_ps(0, 0, 0, x);
-      rows[1] = _mm_set_ps(0, 0, x, 0);
-      rows[2] = _mm_set_ps(0, x, 0, 0);
-      rows[3] = _mm_set_ps(x, 0, 0, 0);
+      rows[0] = Vec4f(x, 0.0f, 0.0f, 0.0f);
+      rows[1] = Vec4f(0.0f, x, 0.0f, 0.0f);
+      rows[2] = Vec4f(0.0f, 0.0f, x, 0.0f);
+      rows[3] = Vec4f(0.0f, 0.0f, 0.0f, x);
     }
     
     inline Matrix4(
@@ -46,10 +46,10 @@ namespace dxvk {
     }
     
     inline Matrix4(const float matrix[4][4]) {
-      rows[0] = _mm_loadu_ps(matrix[0]);
-      rows[1] = _mm_loadu_ps(matrix[1]);
-      rows[2] = _mm_loadu_ps(matrix[2]);
-      rows[3] = _mm_loadu_ps(matrix[3]);
+      rows[0] = Vec4f().load(matrix[0]);
+      rows[1] = Vec4f().load(matrix[1]);
+      rows[2] = Vec4f().load(matrix[2]);
+      rows[3] = Vec4f().load(matrix[3]);
     }
     
     Matrix4(const Matrix4& other) = default;

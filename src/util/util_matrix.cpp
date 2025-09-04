@@ -65,20 +65,23 @@ namespace dxvk {
   }
 
   Vector4 Matrix4::operator*(const Vector4& v) const {
-    // Optimized matrix-vector multiplication
+    // Highly optimized matrix-vector multiplication using batch dot product approach
     Vec4f vv(v.xmm);
     
-    // Broadcast each component of the vector
+    // Broadcast each component of the vector for parallel computation
     Vec4f x = permute4<0,0,0,0>(vv);
     Vec4f y = permute4<1,1,1,1>(vv);
     Vec4f z = permute4<2,2,2,2>(vv);
     Vec4f w = permute4<3,3,3,3>(vv);
     
-    // Multiply and accumulate
-    return Vec4f(rows[0]) * x + 
-           Vec4f(rows[1]) * y + 
-           Vec4f(rows[2]) * z + 
-           Vec4f(rows[3]) * w;
+    // Multiply and accumulate using FMA when available
+    // This pattern allows VCL to generate optimal FMA instructions
+    Vec4f result = Vec4f(rows[0]) * x;
+    result = mul_add(Vec4f(rows[1]), y, result);  // result + rows[1] * y
+    result = mul_add(Vec4f(rows[2]), z, result);  // result + rows[2] * z  
+    result = mul_add(Vec4f(rows[3]), w, result);  // result + rows[3] * w
+    
+    return Vector4(result);
   }
 
   Matrix4 Matrix4::operator*(float scalar) const {
@@ -118,17 +121,24 @@ namespace dxvk {
   }
 
   Matrix4 transpose(const Matrix4& m) {
-    // Highly optimized transpose using SIMD shuffle instructions
-    __m128 t0 = _mm_unpacklo_ps(m.rows[0], m.rows[1]);
-    __m128 t1 = _mm_unpackhi_ps(m.rows[0], m.rows[1]);
-    __m128 t2 = _mm_unpacklo_ps(m.rows[2], m.rows[3]);
-    __m128 t3 = _mm_unpackhi_ps(m.rows[2], m.rows[3]);
+    // Highly optimized transpose using VCL blend operations
+    Vec4f row0(m.rows[0]);
+    Vec4f row1(m.rows[1]);
+    Vec4f row2(m.rows[2]);
+    Vec4f row3(m.rows[3]);
+    
+    // Equivalent to _mm_unpacklo_ps(a,b) - interleave low elements
+    Vec4f t0 = blend4<0,4,1,5>(row0, row1);  // a[0], b[0], a[1], b[1]
+    Vec4f t1 = blend4<2,6,3,7>(row0, row1);  // a[2], b[2], a[3], b[3]
+    Vec4f t2 = blend4<0,4,1,5>(row2, row3);  // c[0], d[0], c[1], d[1]  
+    Vec4f t3 = blend4<2,6,3,7>(row2, row3);  // c[2], d[2], c[3], d[3]
     
     Matrix4 result;
-    result.rows[0] = _mm_movelh_ps(t0, t2);
-    result.rows[1] = _mm_movehl_ps(t2, t0);
-    result.rows[2] = _mm_movelh_ps(t1, t3);
-    result.rows[3] = _mm_movehl_ps(t3, t1);
+    // Equivalent to _mm_movelh_ps(t0, t2) and _mm_movehl_ps variations
+    result.rows[0] = blend4<0,1,4,5>(t0, t2);  // t0[0], t0[1], t2[0], t2[1]
+    result.rows[1] = blend4<6,7,2,3>(t2, t0);  // t2[2], t2[3], t0[2], t0[3]
+    result.rows[2] = blend4<0,1,4,5>(t1, t3);  // t1[0], t1[1], t3[0], t3[1]
+    result.rows[3] = blend4<6,7,2,3>(t3, t1);  // t3[2], t3[3], t1[2], t1[3]
     
     return result;
   }
