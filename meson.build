@@ -14,9 +14,6 @@ cpp_args = [
   '-msse',
   '-msse2',
   '-msse3',
-  '-mssse3',
-  '-msse4.1',
-  '-msse4.2',
   '-mfpmath=sse',
   '-Wimplicit-fallthrough',
   # gcc
@@ -32,19 +29,11 @@ cpp_args = [
   '-Wno-missing-braces',
 ]
 
-# AVX/AVX2 flags - not on Windows due to stack alignment issues
-if platform != 'windows'
-  cpp_args += ['-mavx', '-mavx2']
-endif
-
 # C specific compiler arguments (without C++-only flags)
 c_args = [
   '-msse',
   '-msse2',
   '-msse3',
-  '-mssse3',
-  '-msse4.1',
-  '-msse4.2',
   '-mfpmath=sse',
   '-Wimplicit-fallthrough',
   # gcc
@@ -54,11 +43,6 @@ c_args = [
   '-Wno-cast-function-type', # Needed for GetProcAddress.
   '-Wno-missing-braces',
 ]
-
-# AVX/AVX2 flags for C - not on Windows due to stack alignment issues
-if platform != 'windows'
-  c_args += ['-mavx', '-mavx2']
-endif
 
 link_args = []
 
