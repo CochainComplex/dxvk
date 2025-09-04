@@ -20,7 +20,7 @@ A Vulkan-based translation layer for Direct3D 8/9/10/11 which allows running 3D 
 - **116+ optimized function calls**: Comprehensive replacement of memory operations in critical paths
 - **Automatic CPU detection**: asmlib detects and uses the best instruction set at runtime
 
-> **TL;DR**: Same DXVK you know and love, but with faster CPU-side operations. Enable with `-Denable_asmlib=true` during build for automatic performance gains.
+> **TL;DR**: Same DXVK you know and love, but with faster CPU-side operations **enabled by default**. Get automatic performance gains out of the box!
 
 For the current status of the project, please refer to the [project wiki](https://github.com/doitsujin/dxvk/wiki).
 
@@ -153,7 +153,7 @@ ninja install
 
 #### Compiling manually
 
-**Standard build:**
+**Standard build (asmlib optimizations enabled by default):**
 ```
 # 64-bit build. For 32-bit builds, replace
 # build-win64.txt with build-win32.txt
@@ -162,15 +162,15 @@ cd build.w64
 ninja install
 ```
 
-**Performance-optimized build with asmlib:**
+**Disable asmlib optimizations (if needed):**
 ```
-# Enable asmlib optimizations
-meson setup --cross-file build-win64.txt --buildtype release --prefix /your/dxvk/directory -Denable_asmlib=true build.w64
+# Build without asmlib optimizations
+meson setup --cross-file build-win64.txt --buildtype release --prefix /your/dxvk/directory -Denable_asmlib=false build.w64
 cd build.w64
 ninja install
 ```
 
-When asmlib is enabled, you'll see in the logs:
+When asmlib is enabled (default), you'll see in the logs:
 ```
 asmlib: Optimized memory functions enabled
 ```
@@ -205,13 +205,19 @@ This fork includes optional CPU-specific optimizations using **Agner Fog's** asm
 - Optimizes memory-intensive operations in DirectX → Vulkan translation
 - Zero runtime overhead when disabled
 
-### Enabling Optimizations
-Add `-Denable_asmlib=true` to your meson setup command:
+### Optimizations Enabled by Default
+DXVK-Fogged has asmlib optimizations **enabled by default**. Standard build:
 ```bash
-meson setup build.w64 --cross-file build-win64.txt -Denable_asmlib=true
+meson setup build.w64 --cross-file build-win64.txt
 ```
 
-When enabled, you'll see in the logs:
+### Disabling Optimizations (if needed)
+To disable asmlib and use standard library functions:
+```bash
+meson setup build.w64 --cross-file build-win64.txt -Denable_asmlib=false
+```
+
+When asmlib is enabled (default), you'll see in the logs:
 ```
 asmlib: Optimized memory functions enabled
 ```
