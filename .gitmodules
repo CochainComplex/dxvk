@@ -14,3 +14,9 @@
 [submodule "subprojects/dxbc-spirv"]
 	path = subprojects/dxbc-spirv
 	url = https://github.com/doitsujin/dxbc-spirv.git
+[submodule "include/vectorclass"]
+	path = include/vectorclass
+	url = https://github.com/vectorclass/version2
+[submodule "include/vectorclass-addon"]
+	path = include/vectorclass-addon
+	url = https://github.com/vectorclass/add-on

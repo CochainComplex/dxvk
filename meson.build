@@ -235,6 +235,26 @@ endif
 # Make asmlib available as a project-wide dependency list
 asmlib_deps = asmlib_dep.found() ? [asmlib_dep] : []
 
+# Vector Class Library configuration
+if get_option('enable_vcl')
+  # Add VCL include directories
+  if fs.is_dir('./include/vectorclass') and fs.is_dir('./include/vectorclass-addon')
+    dxvk_include_dirs += [
+      './include/vectorclass',
+      './include/vectorclass-addon'
+    ]
+    
+    # Define macro for conditional compilation
+    add_project_arguments('-DDXVK_USE_VCL', language: ['c', 'cpp'])
+    
+    # Ensure CPU instruction sets are enabled
+    # VCL will automatically detect and use the best available instruction set
+    message('Vector Class Library enabled: Using SIMD-optimized vector/matrix operations')
+  else
+    warning('VCL directories not found. Please ensure vectorclass and vectorclass-addon submodules are initialized.')
+  endif
+endif
+
 dxvk_include_path = include_directories(dxvk_include_dirs)
 
 add_project_arguments(cpp.get_supported_arguments(cpp_args), language: 'cpp')
