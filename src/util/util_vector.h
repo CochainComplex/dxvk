@@ -248,14 +248,14 @@ namespace dxvk {
     #endif
   }
 
-#endif // DXVK_USE_VCL && DXVK_ARCH_X86
-
-  // Output stream operator
+  // Output stream operator for Vector4Base (non-VCL mode)
   template <typename T>
   std::ostream& operator<<(std::ostream& os, const Vector4Base<T>& v) {
     return os << "Vector4(" << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ")";
   }
-  
+
+#endif // DXVK_USE_VCL && DXVK_ARCH_X86
+
 #if defined(DXVK_USE_VCL) && defined(DXVK_ARCH_X86)
   inline std::ostream& operator<<(std::ostream& os, const Vector4& v) {
     return os << "Vector4(" << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ")";
