@@ -14,126 +14,125 @@
 namespace dxvk {
 
 #if defined(DXVK_USE_VCL) && defined(DXVK_ARCH_X86)
-  // VCL-optimized Vector4 implementation following Agner Fog's best practices
-  // Uses union with __m128 for zero-overhead access (Agner's pattern)
+  // KISS Implementation: Vector4 IS Vec4f with named access
+  // ALL operators come from Vec4f - we don't redefine them (DRY principle)
   
   struct alignas(16) Vector4 {
-    // Union for multiple access patterns - __m128 is primary storage
+    // Single storage as Vec4f with union overlay for named access
     union {
-      __m128 xmm;                      // Primary SIMD storage
-      float data[4];                    // Array access
-      struct { float x, y, z, w; };     // Named access
-      struct { float r, g, b, a; };     // Color access
+      Vec4f v;                           // The actual VCL vector - has ALL operators
+      float data[4];                     // Array access overlay
+      struct { float x, y, z, w; };     // Named access overlay
+      struct { float r, g, b, a; };     // Color access overlay
     };
     
-    // Constructors - use direct SSE intrinsics like Agner Fog's pattern
-    Vector4() : xmm(_mm_setzero_ps()) {}
-    Vector4(float splat) : xmm(_mm_set1_ps(splat)) {}
-    Vector4(float x, float y, float z, float w) : xmm(_mm_setr_ps(x, y, z, w)) {}
-    Vector4(const float xyzw[4]) : xmm(_mm_loadu_ps(xyzw)) {}
-    Vector4(__m128 v) : xmm(v) {}
-    Vector4(const Vec4f& v) : xmm(v) {}  // Implicit conversion from Vec4f
-    Vector4(const Vector4& other) = default;
-    Vector4& operator=(const Vector4& other) = default;
+    // Constructors - minimal set, delegate to Vec4f
+    Vector4() : v(0.0f) {}
+    Vector4(float splat) : v(splat) {}
+    Vector4(float x, float y, float z, float w) : v(x, y, z, w) {}
+    Vector4(const float xyzw[4]) : v() { v.load(xyzw); }
+    Vector4(__m128 xmm) : v(xmm) {}
+    Vector4(const Vec4f& vec) : v(vec) {}
     
-    // Implicit conversions - Agner's pattern: return raw __m128
-    operator __m128() const { return xmm; }
-    operator Vec4f() const { return xmm; }  // Implicit via Vec4f(__m128)
+    // Implicit conversion to Vec4f - this enables ALL of Agner's operators!
+    // When you write: Vector4 a, b; auto c = a + b;
+    // It becomes: auto c = Vec4f(a) + Vec4f(b); using Agner's operator+
+    operator Vec4f() const { return v; }
+    operator Vec4f&() { return v; }
+    operator __m128() const { return v; }
     
     // Element access
     float& operator[](size_t index) { return data[index]; }
     const float& operator[](size_t index) const { return data[index]; }
     
-    // Comparison - use VCL's efficient boolean operations
+    // Comparison operators - these need special handling for boolean result
     bool operator==(const Vector4& other) const {
-      Vec4fb cmp = Vec4f(xmm) == Vec4f(other.xmm);
+      Vec4fb cmp = v == other.v;  // Uses Vec4f's operator==
       return horizontal_and(cmp);
     }
-    bool operator!=(const Vector4& other) const { return !operator==(other); }
-    
-    // Arithmetic operators - single Vec4f conversion, implicit conversion back
-    Vector4 operator-() const { return -Vec4f(xmm); }
-    Vector4 operator+(const Vector4& other) const { return Vec4f(xmm) + Vec4f(other.xmm); }
-    Vector4 operator-(const Vector4& other) const { return Vec4f(xmm) - Vec4f(other.xmm); }
-    Vector4 operator*(float scalar) const { return Vec4f(xmm) * scalar; }
-    Vector4 operator*(const Vector4& other) const { return Vec4f(xmm) * Vec4f(other.xmm); }
-    Vector4 operator/(const Vector4& other) const { return Vec4f(xmm) / Vec4f(other.xmm); }
-    Vector4 operator/(float scalar) const { return Vec4f(xmm) / scalar; }
-    
-    // In-place operators
-    Vector4& operator+=(const Vector4& other) { xmm = Vec4f(xmm) + Vec4f(other.xmm); return *this; }
-    Vector4& operator-=(const Vector4& other) { xmm = Vec4f(xmm) - Vec4f(other.xmm); return *this; }
-    Vector4& operator*=(float scalar) { xmm = Vec4f(xmm) * scalar; return *this; }
-    Vector4& operator/=(float scalar) { xmm = Vec4f(xmm) / scalar; return *this; }
+    bool operator!=(const Vector4& other) const { 
+      return !operator==(other); 
+    }
   };
   
-  // VCL-optimized Vector4i implementation
+  // NO OPERATOR DEFINITIONS NEEDED!
+  // Vec4f already has ALL arithmetic operators defined by Agner Fog:
+  // - operator+, -, *, / (both vector-vector and vector-scalar)
+  // - operator+=, -=, *=, /=
+  // - operator- (unary negation)
+  // Our implicit conversion to Vec4f makes them all work automatically!
+  
+  // KISS Implementation: Vector4i IS Vec4i with named access
+  // ALL operators come from Vec4i - we don't redefine them (DRY principle)
   struct alignas(16) Vector4i {
+    // Single storage as Vec4i with union overlay for named access
     union {
-      __m128i xmm;                     // Primary SIMD storage
-      int32_t data[4];                  // Array access
-      struct { int32_t x, y, z, w; };   // Named access
-      struct { int32_t r, g, b, a; };   // Color access
+      Vec4i v;                           // The actual VCL vector - has ALL operators
+      int32_t data[4];                   // Array access overlay
+      struct { int32_t x, y, z, w; };   // Named access overlay
+      struct { int32_t r, g, b, a; };   // Color access overlay
     };
     
-    // Constructors - use direct SSE intrinsics like Agner Fog's pattern
-    Vector4i() : xmm(_mm_setzero_si128()) {}
-    Vector4i(int32_t splat) : xmm(_mm_set1_epi32(splat)) {}
-    Vector4i(int32_t x, int32_t y, int32_t z, int32_t w) : xmm(_mm_setr_epi32(x, y, z, w)) {}
-    Vector4i(const int32_t xyzw[4]) : xmm(_mm_loadu_si128((__m128i const*)xyzw)) {}
-    Vector4i(__m128i v) : xmm(v) {}
-    Vector4i(const Vec4i& v) : xmm(v) {}  // Implicit conversion from Vec4i
-    Vector4i(const Vector4i& other) = default;
-    Vector4i& operator=(const Vector4i& other) = default;
+    // Constructors - minimal set, delegate to Vec4i
+    Vector4i() : v(0) {}
+    Vector4i(int32_t splat) : v(splat) {}
+    Vector4i(int32_t x, int32_t y, int32_t z, int32_t w) : v(x, y, z, w) {}
+    Vector4i(const int32_t xyzw[4]) : v() { v.load(xyzw); }
+    Vector4i(__m128i xmm) : v(xmm) {}
+    Vector4i(const Vec4i& vec) : v(vec) {}
     
-    // Implicit conversions - Agner's pattern: return raw __m128i
-    operator __m128i() const { return xmm; }
-    operator Vec4i() const { return xmm; }  // Implicit via Vec4i(__m128i)
+    // Implicit conversion to Vec4i - this enables ALL of Agner's operators!
+    operator Vec4i() const { return v; }
+    operator Vec4i&() { return v; }
+    operator __m128i() const { return v; }
     
+    // Element access
     int32_t& operator[](size_t index) { return data[index]; }
     const int32_t& operator[](size_t index) const { return data[index]; }
     
+    // Comparison operators - these need special handling for boolean result
     bool operator==(const Vector4i& other) const {
-      Vec4ib cmp = Vec4i(xmm) == Vec4i(other.xmm);
+      Vec4ib cmp = v == other.v;  // Uses Vec4i's operator==
       return horizontal_and(cmp);
     }
-    bool operator!=(const Vector4i& other) const { return !operator==(other); }
-    
-    Vector4i operator-() const { return -Vec4i(xmm); }
-    Vector4i operator+(const Vector4i& other) const { return Vec4i(xmm) + Vec4i(other.xmm); }
-    Vector4i operator-(const Vector4i& other) const { return Vec4i(xmm) - Vec4i(other.xmm); }
-    Vector4i operator*(int32_t scalar) const { return Vec4i(xmm) * scalar; }
-    Vector4i operator*(const Vector4i& other) const { return Vec4i(xmm) * Vec4i(other.xmm); }
-    
-    Vector4i& operator+=(const Vector4i& other) { xmm = Vec4i(xmm) + Vec4i(other.xmm); return *this; }
-    Vector4i& operator-=(const Vector4i& other) { xmm = Vec4i(xmm) - Vec4i(other.xmm); return *this; }
-    Vector4i& operator*=(int32_t scalar) { xmm = Vec4i(xmm) * scalar; return *this; }
+    bool operator!=(const Vector4i& other) const {
+      return !operator==(other);
+    }
   };
   
-  // Essential vector operations - PURE VCL, no intrinsics mixing!
+  // NO OPERATOR DEFINITIONS NEEDED!
+  // Vec4i already has ALL arithmetic operators defined by Agner Fog:
+  // - operator+, -, * (both vector-vector and vector-scalar)
+  // - operator+=, -=, *=
+  // - operator- (unary negation)
+  // - bitwise operators: &, |, ^, ~, <<, >>
+  // Our implicit conversion to Vec4i makes them all work automatically!
+  
+  // DXVK-specific vector operations using VCL functions
+  // These use Vec4f functions through implicit conversion
   inline float dot(const Vector4& a, const Vector4& b) {
-    // Use implicit conversion for cleaner code (Agner's pattern)
-    return horizontal_add(Vec4f(a) * Vec4f(b));
+    return horizontal_add(Vec4f(a) * Vec4f(b));  // Uses Vec4f's operator*
   }
   
-  inline float lengthSqr(const Vector4& a) { return dot(a, a); }
-  inline float length(const Vector4& a) { return std::sqrt(lengthSqr(a)); }
+  inline float lengthSqr(const Vector4& a) { 
+    return dot(a, a); 
+  }
+  
+  inline float length(const Vector4& a) { 
+    return std::sqrt(lengthSqr(a)); 
+  }
   
   inline Vector4 normalize(const Vector4& a) {
     float len = length(a);
-    return len != 0.0f ? a / len : Vector4(0.0f);
+    return len != 0.0f ? Vec4f(a) / len : Vector4(0.0f);  // Uses Vec4f's operator/
   }
   
-  // Hot path: NaN replacement for D3D9 shader constants - pure VCL
+  // Hot path: NaN replacement for D3D9 shader constants
   inline Vector4 replaceNaN(const Vector4& a) {
-    Vec4f v(a.xmm);
-    Vec4fb nan_mask = is_nan(v);
-    return select(nan_mask, Vec4f(0.0f), v);  // Returns Vec4f, implicit conversion to Vector4
+    // Uses Vec4f's is_nan and select functions
+    Vec4fb nan_mask = is_nan(Vec4f(a));
+    return select(nan_mask, Vec4f(0.0f), Vec4f(a));
   }
-  
-  // Scalar multiplication (both orders)
-  inline Vector4 operator*(float scalar, const Vector4& v) { return v * scalar; }
-  inline Vector4i operator*(int32_t scalar, const Vector4i& v) { return v * scalar; }
 
 #else
   // Original DXVK template implementation (when VCL is disabled)
