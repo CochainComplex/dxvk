@@ -133,6 +133,7 @@ git clone --recursive https://github.com/doitsujin/dxvk.git
 - [Meson](https://mesonbuild.com/) build system (at least version 0.58)
 - [Mingw-w64](https://www.mingw-w64.org) compiler and headers (at least version 10.0)
 - [glslang](https://github.com/KhronosGroup/glslang) compiler
+- **GCC or Clang compiler** (DXVK-Fogged uses GCC/Clang-specific optimizations; MSVC is not supported)
 
 ### Building DLLs
 

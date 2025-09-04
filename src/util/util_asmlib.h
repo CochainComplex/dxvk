@@ -143,27 +143,47 @@
       }
     }
     
-    // Zero-overhead macro dispatchers
-    // These evaluate at compile time when possible
+    // Zero-overhead macro dispatchers using GNU statement expressions
+    // These evaluate parameters only once and compile to optimal code
     #define dxvk_memcpy(dst, src, n) \
-      ((__builtin_constant_p(n) && (n) <= 64) ? \
-        __builtin_memcpy(dst, src, n) : \
-        dxvk::asm_dispatch::memcpy_dispatch(dst, src, n))
+      __extension__({ \
+        void* _dst = (dst); \
+        const void* _src = (src); \
+        size_t _n = (n); \
+        (__builtin_constant_p(_n) && _n <= 64) ? \
+          __builtin_memcpy(_dst, _src, _n) : \
+          dxvk::asm_dispatch::memcpy_dispatch(_dst, _src, _n); \
+      })
     
     #define dxvk_memmove(dst, src, n) \
-      ((__builtin_constant_p(n) && (n) <= 64) ? \
-        __builtin_memmove(dst, src, n) : \
-        dxvk::asm_dispatch::memmove_dispatch(dst, src, n))
+      __extension__({ \
+        void* _dst = (dst); \
+        const void* _src = (src); \
+        size_t _n = (n); \
+        (__builtin_constant_p(_n) && _n <= 64) ? \
+          __builtin_memmove(_dst, _src, _n) : \
+          dxvk::asm_dispatch::memmove_dispatch(_dst, _src, _n); \
+      })
     
     #define dxvk_memset(dst, c, n) \
-      ((__builtin_constant_p(n) && (n) <= 64) ? \
-        __builtin_memset(dst, c, n) : \
-        dxvk::asm_dispatch::memset_dispatch(dst, c, n))
+      __extension__({ \
+        void* _dst = (dst); \
+        int _c = (c); \
+        size_t _n = (n); \
+        (__builtin_constant_p(_n) && _n <= 64) ? \
+          __builtin_memset(_dst, _c, _n) : \
+          dxvk::asm_dispatch::memset_dispatch(_dst, _c, _n); \
+      })
     
     #define dxvk_memcmp(p1, p2, n) \
-      ((__builtin_constant_p(n) && (n) <= 64) ? \
-        __builtin_memcmp(p1, p2, n) : \
-        dxvk::asm_dispatch::memcmp_dispatch(p1, p2, n))
+      __extension__({ \
+        const void* _p1 = (p1); \
+        const void* _p2 = (p2); \
+        size_t _n = (n); \
+        (__builtin_constant_p(_n) && _n <= 64) ? \
+          __builtin_memcmp(_p1, _p2, _n) : \
+          dxvk::asm_dispatch::memcmp_dispatch(_p1, _p2, _n); \
+      })
     
     // String operations always use asmlib (size not known at compile time)
     #define dxvk_strlen     A_strlen
