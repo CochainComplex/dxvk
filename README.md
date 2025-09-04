@@ -19,7 +19,7 @@ A Vulkan-based translation layer for Direct3D 8/9/10/11 which allows running 3D 
 - **Zero-overhead dispatching**: Compile-time flag enables optimizations with no runtime cost
 - **116+ optimized function calls**: Comprehensive replacement of memory operations in critical paths
 - **Automatic CPU detection**: asmlib detects and uses the best instruction set at runtime
-- **Enhanced SIMD support**: Compiler now targets SSSE3, SSE4.1, SSE4.2, AVX, and AVX2 instruction sets (AVX/AVX2 disabled on 32-bit Windows due to stack alignment)
+- **Enhanced SIMD support**: Compiler now targets SSSE3, SSE4.1, SSE4.2, AVX, and AVX2 instruction sets (AVX/AVX2 disabled on all Windows builds due to stack alignment)
 
 > **TL;DR**: Same DXVK you know and love, but with faster CPU-side operations **enabled by default**. Get automatic performance gains out of the box!
 

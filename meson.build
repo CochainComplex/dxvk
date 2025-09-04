@@ -32,8 +32,8 @@ cpp_args = [
   '-Wno-missing-braces',
 ]
 
-# AVX/AVX2 flags - not on 32-bit Windows due to stack alignment issues
-if cpu_family == 'x86_64' or (cpu_family == 'x86' and platform != 'windows')
+# AVX/AVX2 flags - not on Windows due to stack alignment issues
+if platform != 'windows'
   cpp_args += ['-mavx', '-mavx2']
 endif
 
@@ -55,8 +55,8 @@ c_args = [
   '-Wno-missing-braces',
 ]
 
-# AVX/AVX2 flags for C - not on 32-bit Windows due to stack alignment issues
-if cpu_family == 'x86_64' or (cpu_family == 'x86' and platform != 'windows')
+# AVX/AVX2 flags for C - not on Windows due to stack alignment issues
+if platform != 'windows'
   c_args += ['-mavx', '-mavx2']
 endif
 
