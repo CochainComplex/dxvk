@@ -18,6 +18,7 @@
 #include <string.h>
 #include "sha1.h"
 #include "../util_asmlib.h"
+#include "../util_sha_hw.h"
 
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
 
@@ -127,9 +128,9 @@ SHA1Update(SHA1_CTX *context, const uint8_t *data, size_t len)
 	context->count += (len << 3);
 	if ((j + len) > 63) {
 		(void)dxvk_memcpy(&context->buffer[j], data, (i = 64-j));
-		SHA1Transform(context->state, context->buffer);
+		dxvk_sha1_transform(context->state, context->buffer);
 		for ( ; i + 63 < len; i += 64)
-			SHA1Transform(context->state, (uint8_t *)&data[i]);
+			dxvk_sha1_transform(context->state, (uint8_t *)&data[i]);
 		j = 0;
 	} else {
 		i = 0;

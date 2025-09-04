@@ -124,7 +124,7 @@ namespace dxvk {
   
   inline Vector4 normalize(const Vector4& a) {
     float len = length(a);
-    return len != 0.0f ? Vec4f(a) / len : Vector4(0.0f);  // Uses Vec4f's operator/
+    return len != 0.0f ? Vector4(Vec4f(a) / len) : Vector4(0.0f);  // Uses Vec4f's operator/
   }
   
   // Hot path: NaN replacement for D3D9 shader constants

@@ -26,6 +26,11 @@ util_src = files([
   'sync/sync_recursive.cpp',
 ])
 
+# Add SHA hardware acceleration source if enabled
+if get_option('enable_sha_hw')
+  util_src += files(['sha1/sha1_hw.cpp'])
+endif
+
 util_lib = static_library('util', util_src,
   include_directories : [ dxvk_include_path ],
   dependencies        : asmlib_deps,

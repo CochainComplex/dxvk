@@ -44,6 +44,13 @@ c_args = [
   '-Wno-missing-braces',
 ]
 
+# FMA support (optional, disabled by default for compatibility)
+if get_option('enable_fma')
+  cpp_args += ['-mfma']
+  c_args += ['-mfma']
+  add_project_arguments('-DDXVK_USE_FMA', language: ['cpp', 'c'])
+endif
+
 link_args = []
 
 if get_option('build_id')
@@ -252,6 +259,28 @@ if get_option('enable_vcl')
     message('Vector Class Library enabled: Using SIMD-optimized vector/matrix operations')
   else
     warning('VCL directories not found. Please ensure vectorclass and vectorclass-addon submodules are initialized.')
+  endif
+endif
+
+# SHA Hardware Acceleration configuration
+if get_option('enable_sha_hw')
+  # Check if compiling for x86/x86-64
+  if cpu_family == 'x86' or cpu_family == 'x86_64'
+    # Add SHA instruction support if compiler supports it
+    sha_args = ['-msha']
+    if cpp.has_argument(sha_args[0]) and cc.has_argument(sha_args[0])
+      cpp_args += sha_args
+      c_args += sha_args
+      
+      # Define macro for conditional compilation
+      add_project_arguments('-DDXVK_USE_SHA_HW', language: ['c', 'cpp'])
+      
+      message('SHA Hardware Acceleration enabled: Using Intel SHA-NI/AMD SHA for SHA1 operations')
+    else
+      warning('Compiler does not support -msha flag. SHA hardware acceleration disabled.')
+    endif
+  else
+    message('SHA Hardware Acceleration not available on non-x86 platforms')
   endif
 endif
 
