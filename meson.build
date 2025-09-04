@@ -74,7 +74,12 @@ dep_displayinfo = dependency(
 if platform == 'windows'
   dxvk_so_version = {'name_prefix': ''}
 
-  compiler_args += [
+  cpp_args += [
+    '-DNOMINMAX',
+    '-D_WIN32_WINNT=0xa00',
+  ]
+  
+  c_args += [
     '-DNOMINMAX',
     '-D_WIN32_WINNT=0xa00',
   ]
@@ -91,9 +96,8 @@ if platform == 'windows'
 
     # Wine's built-in back traces only work with dwarf4 symbols
     if get_option('debug')
-      compiler_args += [
-        '-gdwarf-4',
-      ]
+      cpp_args += ['-gdwarf-4']
+      c_args += ['-gdwarf-4']
     endif
 
     if cpu_family == 'x86'
@@ -103,16 +107,14 @@ if platform == 'windows'
         '-Wl,--kill-at',
       ]
       # Fix stack alignment issues with mingw on 32-bit
-      compiler_args += [
-        '-mpreferred-stack-boundary=2'
-      ]
+      cpp_args += ['-mpreferred-stack-boundary=2']
+      c_args += ['-mpreferred-stack-boundary=2']
     endif
   else
     # setup file alignment + enable PDB output for MSVC builds
     # PDBs are useful for Windows consumers of DXVK 
-    compiler_args += [
-      '/Z7'
-    ]
+    cpp_args += ['/Z7']
+    c_args += ['/Z7']
     link_args += [
       '/FILEALIGN:4096',
       '/DEBUG:FULL'
@@ -140,7 +142,8 @@ if platform == 'windows'
   endif
 
   dxvk_name_prefix = ''
-  compiler_args += ['-DDXVK_WSI_WIN32']
+  cpp_args += ['-DDXVK_WSI_WIN32']
+  c_args += ['-DDXVK_WSI_WIN32']
 else
   dxvk_abi_version = '0'
   dxvk_version_raw = meson.project_version().strip('v').split('.')
@@ -167,13 +170,16 @@ else
   lib_sdl2 = dependency('sdl2', required: get_option('native_sdl2'))
   lib_glfw = dependency('glfw', required: get_option('native_glfw'))
   if lib_sdl3.found()
-    compiler_args += ['-DDXVK_WSI_SDL3']
+    cpp_args += ['-DDXVK_WSI_SDL3']
+    c_args += ['-DDXVK_WSI_SDL3']
   endif
   if lib_sdl2.found()
-    compiler_args += ['-DDXVK_WSI_SDL2']
+    cpp_args += ['-DDXVK_WSI_SDL2']
+    c_args += ['-DDXVK_WSI_SDL2']
   endif
   if lib_glfw.found()
-    compiler_args += ['-DDXVK_WSI_GLFW']
+    cpp_args += ['-DDXVK_WSI_GLFW']
+    c_args += ['-DDXVK_WSI_GLFW']
   endif
   if (not lib_sdl3.found() and not lib_sdl2.found() and not lib_glfw.found())
     error('SDL3, SDL2, or GLFW are required to build dxvk-native')
