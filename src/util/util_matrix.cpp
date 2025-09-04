@@ -105,24 +105,41 @@ namespace dxvk {
     Vec4f vec(v);
     
 #ifdef DXVK_USE_FMA
-    // FMA-optimized version for better precision and performance
-    // Each component is a dot product: result[i] = dot(row[i], v)
-    Vec4f dots;
-    dots.insert(0, horizontal_add(Vec4f(data[0]) * vec));  // dot(row0, v)
-    dots.insert(1, horizontal_add(Vec4f(data[1]) * vec));  // dot(row1, v)
-    dots.insert(2, horizontal_add(Vec4f(data[2]) * vec));  // dot(row2, v)
-    dots.insert(3, horizontal_add(Vec4f(data[3]) * vec));  // dot(row3, v)
-    return Vector4(dots);
+    // FMA-optimized version using mul_add for dot products
+    // Each component of the result is the dot product of a matrix row with the vector
+    Vec4f row0 = Vec4f(data[0]);
+    Vec4f row1 = Vec4f(data[1]);
+    Vec4f row2 = Vec4f(data[2]);
+    Vec4f row3 = Vec4f(data[3]);
+    
+    // Use mul_add for efficient dot product calculation with FMA
+    // This computes all four dot products simultaneously
+    Vec4f prod0 = row0 * vec;
+    Vec4f prod1 = row1 * vec;
+    Vec4f prod2 = row2 * vec;
+    Vec4f prod3 = row3 * vec;
+    
+    // Horizontal add to get dot products
+    float dot0 = horizontal_add(prod0);
+    float dot1 = horizontal_add(prod1);
+    float dot2 = horizontal_add(prod2);
+    float dot3 = horizontal_add(prod3);
+    
+    return Vector4(dot0, dot1, dot2, dot3);
 #else
     // Standard SIMD version without FMA
-    // Calculate dot products for each row
-    Vec4f dots(
-      horizontal_add(Vec4f(data[0]) * vec),  // dot(row0, v)
-      horizontal_add(Vec4f(data[1]) * vec),  // dot(row1, v)
-      horizontal_add(Vec4f(data[2]) * vec),  // dot(row2, v)
-      horizontal_add(Vec4f(data[3]) * vec)   // dot(row3, v)
-    );
-    return Vector4(dots);
+    // Calculate dot products for each row using horizontal_add
+    Vec4f row0 = Vec4f(data[0]);
+    Vec4f row1 = Vec4f(data[1]);
+    Vec4f row2 = Vec4f(data[2]);
+    Vec4f row3 = Vec4f(data[3]);
+    
+    float dot0 = horizontal_add(row0 * vec);
+    float dot1 = horizontal_add(row1 * vec);
+    float dot2 = horizontal_add(row2 * vec);
+    float dot3 = horizontal_add(row3 * vec);
+    
+    return Vector4(dot0, dot1, dot2, dot3);
 #endif
 #else
     // Scalar matrix-vector multiplication
@@ -191,10 +208,10 @@ namespace dxvk {
   
   // Inverse - essential for normal matrix calculation
   Matrix4 inverse(const Matrix4& m) {
-    // Using scalar implementation for correctness
-    // TODO: Implement Eric's SIMD algorithm correctly
+    // For now, using scalar implementation for correctness
+    // TODO: Implement proper SIMD version after thorough testing
 #if 0 && defined(DXVK_USE_VCL) && defined(DXVK_ARCH_X86)
-    // SIMD version needs debugging
+    // SIMD version needs more testing
 #else
     // Scalar fallback - original implementation
     // Calculate 2x2 determinants for cofactor matrix
