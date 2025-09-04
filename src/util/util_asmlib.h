@@ -11,8 +11,10 @@
  */
 
 #ifdef DXVK_USE_ASMLIB
-  // Forward declare asmlib functions we need
+  // Forward declare asmlib functions we need (works for both C and C++)
+  #ifdef __cplusplus
   extern "C" {
+  #endif
     void * A_memcpy (void * dest, const void * src, size_t count);
     void * A_memmove(void * dest, const void * src, size_t count);
     void * A_memset (void * dest, int c, size_t count);
@@ -21,8 +23,11 @@
     char * A_strcpy (char * dest, const char * src);
     int    A_strcmp (const char * str1, const char * str2);
     char * A_strcat (char * dest, const char * src);
+  #ifdef __cplusplus
   }
+  #endif
   
+  #ifdef __cplusplus
   namespace dxvk::asm_dispatch {
     /**
      * \brief Initialize asmlib (if needed)
@@ -39,8 +44,13 @@
       }
     }
   }
+  #else
+  static inline void dxvk_asm_dispatch_init(void) {
+    // No-op for C files - asmlib handles initialization automatically
+  }
+  #endif
   
-  // Direct replacements with zero overhead
+  // Direct replacements with zero overhead (work for both C and C++)
   // These use the A_ prefixed versions from asmlib
   #define dxvk_memcpy     A_memcpy
   #define dxvk_memmove    A_memmove
@@ -53,21 +63,38 @@
   
 #else
   // Fallback to standard library when asmlib is not enabled
-  #include <cstring>
-  
-  namespace dxvk::asm_dispatch {
-    inline void init() {
-      // No-op when not using asmlib
+  #ifdef __cplusplus
+    #include <cstring>
+    
+    namespace dxvk::asm_dispatch {
+      inline void init() {
+        // No-op when not using asmlib
+      }
     }
-  }
-  
-  #define dxvk_memcpy     std::memcpy
-  #define dxvk_memmove    std::memmove
-  #define dxvk_memset     std::memset
-  #define dxvk_memcmp     std::memcmp
-  #define dxvk_strlen     std::strlen
-  #define dxvk_strcpy     std::strcpy
-  #define dxvk_strcmp     std::strcmp
-  #define dxvk_strcat     std::strcat
+    
+    #define dxvk_memcpy     std::memcpy
+    #define dxvk_memmove    std::memmove
+    #define dxvk_memset     std::memset
+    #define dxvk_memcmp     std::memcmp
+    #define dxvk_strlen     std::strlen
+    #define dxvk_strcpy     std::strcpy
+    #define dxvk_strcmp     std::strcmp
+    #define dxvk_strcat     std::strcat
+  #else
+    #include <string.h>
+    
+    static inline void dxvk_asm_dispatch_init(void) {
+      // No-op for C files when not using asmlib
+    }
+    
+    #define dxvk_memcpy     memcpy
+    #define dxvk_memmove    memmove
+    #define dxvk_memset     memset
+    #define dxvk_memcmp     memcmp
+    #define dxvk_strlen     strlen
+    #define dxvk_strcpy     strcpy
+    #define dxvk_strcmp     strcmp
+    #define dxvk_strcat     strcat
+  #endif
   
 #endif // DXVK_USE_ASMLIB

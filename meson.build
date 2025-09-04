@@ -9,7 +9,8 @@ cpp = meson.get_compiler('cpp')
 cc = meson.get_compiler('c')
 dxvk_is_msvc = cpp.get_argument_syntax() == 'msvc'
 
-compiler_args = [
+# C++ specific compiler arguments
+cpp_args = [
   '-msse',
   '-msse2',
   '-msse3',
@@ -20,11 +21,26 @@ compiler_args = [
   '-Wno-unused-parameter',
   '-Wno-misleading-indentation',
   '-Wno-cast-function-type', # Needed for GetProcAddress.
-  # clang
+  # clang C++ specific
   '-Wno-unused-private-field',
   '-Wno-microsoft-exception-spec',
   '-Wno-extern-c-compat',
   '-Wno-unused-const-variable',
+  '-Wno-missing-braces',
+]
+
+# C specific compiler arguments (without C++-only flags)
+c_args = [
+  '-msse',
+  '-msse2',
+  '-msse3',
+  '-mfpmath=sse',
+  '-Wimplicit-fallthrough',
+  # gcc
+  '-Wno-missing-field-initializers',
+  '-Wno-unused-parameter',
+  '-Wno-misleading-indentation',
+  '-Wno-cast-function-type', # Needed for GetProcAddress.
   '-Wno-missing-braces',
 ]
 
@@ -206,8 +222,8 @@ endif
 
 dxvk_include_path = include_directories(dxvk_include_dirs)
 
-add_project_arguments(cpp.get_supported_arguments(compiler_args), language: 'cpp')
-add_project_arguments(cc.get_supported_arguments(compiler_args), language: 'c')
+add_project_arguments(cpp.get_supported_arguments(cpp_args), language: 'cpp')
+add_project_arguments(cc.get_supported_arguments(c_args), language: 'c')
 add_project_link_arguments(cpp.get_supported_link_arguments(link_args), language: 'cpp')
 add_project_link_arguments(cc.get_supported_link_arguments(link_args), language: 'c')
 
