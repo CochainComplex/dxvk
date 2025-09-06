@@ -14,6 +14,9 @@ cpp_args = [
   '-msse',
   '-msse2',
   '-msse3',
+  '-mssse3',
+  '-msse4.1',
+  '-msse4.2',
   '-mfpmath=sse',
   '-Wimplicit-fallthrough',
   # gcc
@@ -34,6 +37,9 @@ c_args = [
   '-msse',
   '-msse2',
   '-msse3',
+  '-mssse3',
+  '-msse4.1',
+  '-msse4.2',
   '-mfpmath=sse',
   '-Wimplicit-fallthrough',
   # gcc
@@ -44,9 +50,9 @@ c_args = [
   '-Wno-missing-braces',
 ]
 
-# FMA support (optional, disabled by default for compatibility)
+# FMA support (optional, now enabled by default for better performance)
 if get_option('enable_fma')
-  cpp_args += ['-mfma']
+  cpp_args += ['-mfma']  # FMA3 for modern Intel and AMD processors
   c_args += ['-mfma']
   add_project_arguments('-DDXVK_USE_FMA', language: ['cpp', 'c'])
 endif
