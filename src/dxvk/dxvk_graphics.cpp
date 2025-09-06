@@ -886,6 +886,8 @@ namespace dxvk {
       info.prevStageOutputs = DxvkShaderIo::forVertexBindings(attributeMask);
     } else {
       auto prevStage = getPrevStageShader(shaders, shaderMeta.stage);
+
+      info.prevStage = prevStage->metadata().stage;
       info.prevStageOutputs = prevStage->metadata().outputs;
     }
 
@@ -1205,7 +1207,7 @@ namespace dxvk {
   
   bool DxvkGraphicsPipeline::canCreateBasePipeline(
     const DxvkGraphicsPipelineStateInfo& state) const {
-    if (!m_vsLibrary || !m_fsLibrary)
+    if (!m_device->canUseGraphicsPipelineLibrary())
       return false;
 
     // We do not implement setting certain rarely used render
@@ -1255,7 +1257,7 @@ namespace dxvk {
       // If the fragment shader has inputs not produced by the last
       // pre-rasterization stage, we need to patch the fragment shader
       const auto& fsInputs = m_shaders.fs->metadata().inputs;
-      const auto* preRasterStage = m_shaders.vs.ptr();
+      auto* preRasterStage = m_shaders.vs.ptr();
 
       if (m_shaders.gs)
         preRasterStage = m_shaders.gs.ptr();
@@ -1332,6 +1334,9 @@ namespace dxvk {
 
     DxvkShaderPipelineLibraryHandle vs = m_vsLibrary->acquirePipelineHandle();
     DxvkShaderPipelineLibraryHandle fs = m_fsLibrary->acquirePipelineHandle();
+
+    if (!vs.handle || !fs.handle)
+      return VK_NULL_HANDLE;
 
     std::array<VkPipeline, 4> libraries = {{
       key.viLibrary->getHandle(), vs.handle, fs.handle,
@@ -1470,7 +1475,7 @@ namespace dxvk {
 
 
   SpirvCodeBuffer DxvkGraphicsPipeline::getShaderCode(
-    const DxvkShader&         shader,
+          DxvkShader&         shader,
     const DxvkShaderLinkage&  linkage) const {
     return shader.getCode(m_layout.getBindingMap(DxvkPipelineLayoutType::Merged), &linkage);
   }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <vector>
 
 #include "dxvk_include.h"
@@ -17,7 +18,135 @@ namespace dxvk {
   class DxvkShaderModule;
   class DxvkPipelineManager;
   struct DxvkPipelineStats;
-  
+
+  /**
+   * \brief Shader compile flags
+   */
+  enum class DxvkShaderCompileFlag : uint32_t {
+    /// Whether to detect and resolve cases of missing
+    /// shared memory barriers in compute shaders
+    InsertSharedMemoryBarriers  = 0u,
+    /// Whether to detect and resolve cases of missing
+    /// resource memory barriers in compute shaders
+    InsertResourceBarriers      = 1u,
+    /// Whether loads from typed read-write resources
+    /// require the format of the resource to be R32.
+    TypedR32LoadRequiresFormat  = 2u,
+    /// Whether to replace all multisampled image
+    /// resource bindings with single-sampled variants.
+    DisableMsaa                 = 3u,
+    /// Whether to enable sample interpolation for all
+    /// interpolated shader inputs.
+    EnableSampleRateShading     = 4u,
+    /// Whether the device supports 16-bit int and float
+    /// arithmetic. Effectively enables min16 lowering.
+    Supports16BitArithmetic     = 5u,
+    /// Whether 16-bit push data is supported. Used to
+    /// pack sampler indices in the binding model
+    Supports16BitPushData       = 6u,
+    /// Whether to lower unsigned int to float conversions.
+    /// Needed to work around an Nvidia driver bug.
+    LowerItoF                   = 7u,
+    /// Whether to manualy clamp the input for float-to-integer
+    /// conversions to avoid overflow and get correct NaN behaviour
+    LowerFtoI                   = 8u,
+    /// Whether to lower sin/cos to a custom approximation.
+    /// Used on hardware where the built-in intrinsics are
+    /// not accurate enough.
+    LowerSinCos                 = 9u,
+    /// Whether to clamp non-infinite inputs to f32tof16 in
+    /// order to work around issues on drivers that use RTE.
+    LowerF32toF16               = 10u,
+  };
+
+  using DxvkShaderCompileFlags = Flags<DxvkShaderCompileFlag>;
+
+
+  /**
+   * \brief Shader compile options
+   *
+   * Device-level options to enable certain
+   * features or behaviours.
+   */
+  struct DxvkShaderCompileOptions {
+    /// Compile flags
+    DxvkShaderCompileFlags flags = 0u;
+    /// Maximum tessellation factor. If 0, tessellation factors
+    /// will not be clamped beyond what is set in the shader.
+    uint8_t maxTessFactor = 0u;
+    /// Global push data offset for rasterizer sample count
+    uint8_t sampleCountPushDataOffset = 0u;
+    /// Minimum required storage buffer alignment. Buffers
+    /// with a smaller guaranteed alignment must be demoted
+    /// to typed buffers.
+    uint16_t minStorageBufferAlignment = 0u;
+  };
+
+
+  /**
+   * \brief Shader lowering flags
+   *
+   * These flags do not affect the internal IR.
+   */
+  enum class DxvkShaderSpirvFlag : uint32_t {
+    /// Whether to export point size.
+    ExportPointSize             = 0u,
+    /// Whether raw access chains are supported.
+    SupportsNvRawAccessChains   = 1u,
+    /// Whether signed zero / inf / nan preserve is
+    /// supported for the given bit width
+    SupportsSzInfNanPreserve16  = 2u,
+    SupportsSzInfNanPreserve32  = 3u,
+    SupportsSzInfNanPreserve64  = 4u,
+    /// Whether rounding to nearest even is supported
+    /// for the given bit width
+    SupportsRte16               = 5u,
+    SupportsRte32               = 6u,
+    SupportsRte64               = 7u,
+    /// Whether rounding towards zero is supported
+    /// for the given bit width
+    SupportsRtz16               = 8u,
+    SupportsRtz32               = 9u,
+    SupportsRtz64               = 10u,
+    /// Whether flushing denorms is supported for the
+    /// given bit width
+    SupportsDenormFlush16       = 11u,
+    SupportsDenormFlush32       = 12u,
+    SupportsDenormFlush64       = 13u,
+    /// Whether preserving denorms is supported for the
+    /// given bit width
+    SupportsDenormPreserve16    = 14u,
+    SupportsDenormPreserve32    = 15u,
+    SupportsDenormPreserve64    = 16u,
+    /// Whether 16/64-bit rounding and denorm modes can be
+    /// set independently of the corresponding 32-bit mode
+    IndependentRoundMode        = 17u,
+    IndependentDenormMode       = 18u,
+    /// Whether float control 2 features are supported
+    SupportsFloatControls2      = 19u,
+  };
+
+  using DxvkShaderSpirvFlags = Flags<DxvkShaderSpirvFlag>;
+
+
+  /**
+   * \brief SPIR-V lowering options
+   */
+  struct DxvkShaderSpirvOptions {
+    DxvkShaderSpirvFlags flags = 0u;
+    uint32_t maxUniformBufferSize = 0u;
+  };
+
+
+  /**
+   * \brief Shader compile and lowering options
+   */
+  struct DxvkShaderOptions {
+    DxvkShaderCompileOptions compileOptions = { };
+    DxvkShaderSpirvOptions spirvOptions = { };
+  };
+
+
   /**
    * \brief Shader flags
    *
@@ -71,11 +200,13 @@ namespace dxvk {
    * \brief Shader module create info
    */
   struct DxvkShaderLinkage {
-    bool      fsDualSrcBlend  = false;
-    bool      fsFlatShading   = false;
+    bool fsDualSrcBlend  = false;
+    bool fsFlatShading   = false;
+
     VkPrimitiveTopology inputTopology = VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
 
-    std::optional<DxvkShaderIo> prevStageOutputs = { };
+    VkShaderStageFlagBits prevStage = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+    DxvkShaderIo prevStageOutputs = { };
 
     std::array<VkComponentMapping, MaxNumRenderTargets> rtSwizzles = { };
 
@@ -125,8 +256,11 @@ namespace dxvk {
      * \brief Shader metadata
      * \returns Shader metadata
      */
-    const DxvkShaderMetadata& metadata() const {
-      return m_metadata;
+    const DxvkShaderMetadata& metadata() {
+      if (unlikely(!m_metadata))
+        m_metadata = getShaderMetadata();
+
+      return *m_metadata;
     }
 
     /**
@@ -152,22 +286,26 @@ namespace dxvk {
     }
 
     /**
-     * \brief Tests whether this shader supports pipeline libraries
-     *
-     * This is true for any vertex, fragment, or compute shader that does not
-     * require additional pipeline state to be compiled into something useful.
-     * \param [in] standalone Set to \c true to evaluate this in the context
-     *    of a single-shader pipeline library, or \c false for a pre-raster
-     *    shader library consisting of multiple shader stages.
-     * \returns \c true if this shader can be used with pipeline libraries
-     */
-    bool canUsePipelineLibrary(bool standalone) const;
-
-    /**
      * \brief Queries shader binding layout
      * \returns Pipeline layout builder
      */
-    virtual DxvkPipelineLayoutBuilder getLayout() const = 0;
+    virtual DxvkPipelineLayoutBuilder getLayout() = 0;
+
+    /**
+     * \brief Queries uncached shader metadata
+     *
+     * Compiles the shader as necessary.
+     * \returns Shader metadata
+     */
+    virtual DxvkShaderMetadata getShaderMetadata() = 0;
+
+    /**
+     * \brief Compiles shader
+     *
+     * Performs any IR conversions and lowering that may be necessary.
+     * Shader metadata will be immediately available afterwards.
+     */
+    virtual void compile() = 0;
 
     /**
      * \brief Retrieves SPIR-V code for the given shader
@@ -180,7 +318,7 @@ namespace dxvk {
      */
     virtual SpirvCodeBuffer getCode(
       const DxvkShaderBindingMap*       bindings,
-      const DxvkShaderLinkage*          linkage) const = 0;
+      const DxvkShaderLinkage*          linkage) = 0;
 
     /**
      * \brief Dumps SPIR-V shader
@@ -188,13 +326,13 @@ namespace dxvk {
      * Can be used to store the SPIR-V code in a file.
      * \param [in] outputStream Stream to write to 
      */
-    virtual void dump(std::ostream& outputStream) const = 0;
+    virtual void dump(std::ostream& outputStream) = 0;
 
     /**
      * \brief Retrieves debug name
      * \returns The shader's name
      */
-    virtual std::string debugName() const = 0;
+    virtual std::string debugName() = 0;
 
     /**
      * \brief Get lookup hash for a shader
@@ -217,9 +355,7 @@ namespace dxvk {
 
     std::atomic<bool>             m_needsCompile = { true };
 
-  protected:
-
-    DxvkShaderMetadata            m_metadata = { };
+    std::optional<DxvkShaderMetadata> m_metadata;
 
   };
   
@@ -348,16 +484,32 @@ namespace dxvk {
     ~DxvkShaderPipelineLibraryKey();
 
     /**
-     * \brief Creates shader set from key
-     * \returns Shader set
+     * \brief Queries number of shaders in the set
+     * \returns Shader count
      */
-    DxvkShaderSet getShaderSet() const;
+    uint32_t getShaderCount() const {
+      return m_shaders.size();
+    }
 
     /**
-     * \brief Builds merged binding layout
-     * \returns Pipeline layout builder
+     * \brief Queries shader by index
      */
-    DxvkPipelineLayoutBuilder getLayout() const;
+    DxvkShader* getShader(uint32_t index) const {
+      return m_shaders[index].ptr();
+    }
+
+    /**
+     * \brief Queries number of shaders in the set
+     * \returns Shader count
+     */
+    DxvkShader* findShader(VkShaderStageFlagBits stage) const {
+      for (const auto& shader : m_shaders) {
+        if (shader->metadata().stage == stage)
+          return shader.ptr();
+      }
+
+      return nullptr;
+    }
 
     /**
      * \brief Adds a shader to the key
@@ -365,14 +517,7 @@ namespace dxvk {
      * Shaders must be added in stage order.
      * \param [in] shader Shader to add
      */
-    void addShader(
-      const Rc<DxvkShader>&               shader);
-
-    /**
-     * \brief Checks wether a pipeline library can be created
-     * \returns \c true if all added shaders are compatible
-     */
-    bool canUsePipelineLibrary() const;
+    void addShader(Rc<DxvkShader> shader);
 
     /**
      * \brief Checks for equality
@@ -380,8 +525,7 @@ namespace dxvk {
      * \param [in] other Key to compare to
      * \returns \c true if the keys are equal
      */
-    bool eq(
-      const DxvkShaderPipelineLibraryKey& other) const;
+    bool eq(const DxvkShaderPipelineLibraryKey& other) const;
 
     /**
      * \brief Computes key hash
@@ -391,9 +535,7 @@ namespace dxvk {
 
   private:
 
-    uint32_t                      m_shaderCount   = 0;
-    VkShaderStageFlags            m_shaderStages  = 0;
-    std::array<Rc<DxvkShader>, 4> m_shaders;
+    small_vector<Rc<DxvkShader>, 4> m_shaders;
 
   };
 
@@ -471,17 +613,18 @@ namespace dxvk {
 
   private:
 
-    const DxvkDevice*               m_device;
+    DxvkDevice*                     m_device = nullptr;
+    DxvkPipelineManager*            m_manager = nullptr;
 
-    DxvkPipelineStats*              m_stats;
-    DxvkShaderSet                   m_shaders;
+    DxvkShaderPipelineLibraryKey    m_shaders;
 
-    DxvkPipelineBindings            m_layout;
+    std::optional<DxvkPipelineBindings> m_layout;
 
     dxvk::mutex                     m_mutex;
-    DxvkShaderPipelineLibraryHandle m_pipeline      = { VK_NULL_HANDLE, 0 };
     uint32_t                        m_useCount      = 0u;
     bool                            m_compiledOnce  = false;
+
+    std::optional<DxvkShaderPipelineLibraryHandle> m_pipeline;
 
     dxvk::mutex                     m_identifierMutex;
     DxvkShaderIdentifierSet         m_identifiers;
@@ -521,6 +664,12 @@ namespace dxvk {
             VkShaderStageFlagBits         stage);
 
     void notifyLibraryCompile() const;
+
+    void compileShaders();
+
+    bool canCreatePipelineLibrary() const;
+
+    bool canCreatePipelineLibraryForShader(DxvkShader& shader, bool needsPosition) const;
 
     bool canUsePipelineCacheControl() const;
 
