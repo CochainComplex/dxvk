@@ -11,3 +11,6 @@ option('enable_asmlib', type : 'boolean', value : true, description: 'Use Agner 
 option('enable_vcl', type : 'boolean', value : true, description: 'Use Agner Fog\'s Vector Class Library for SIMD-optimized vector/matrix operations')
 option('enable_fma', type : 'boolean', value : true, description: 'Enable FMA (Fused Multiply-Add) instructions for enhanced performance (Linux only, requires Haswell/Piledriver or newer)')
 option('enable_sha_hw', type : 'boolean', value : true, description: 'Use Intel SHA-NI/AMD SHA hardware acceleration for SHA1 operations (requires Goldmont/Ryzen or newer)')
+option('enable_simd_pack', type : 'boolean', value : true, description: 'Use SIMD-optimized image data packing for format conversions (requires AVX2 or newer)')
+option('enable_cb_batching', type : 'boolean', value : true, description: 'Enable constant buffer batching optimization to reduce draw call overhead')
+option('enable_async_query', type : 'boolean', value : true, description: 'Enable asynchronous query collection to reduce CPU-GPU sync latency')

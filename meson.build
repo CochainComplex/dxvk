@@ -296,6 +296,30 @@ if get_option('enable_sha_hw')
   endif
 endif
 
+# SIMD Pack optimization configuration
+if get_option('enable_simd_pack')
+  # Check if VCL is enabled (required for SIMD pack)
+  if get_option('enable_vcl')
+    # Define macro for conditional compilation
+    add_project_arguments('-DDXVK_USE_SIMD_PACK', language: ['c', 'cpp'])
+    message('SIMD Pack optimization enabled: Using AVX2/AVX-512 for image data packing')
+  else
+    warning('SIMD Pack optimization requires VCL to be enabled. Falling back to standard implementation.')
+  endif
+endif
+
+# Constant Buffer batching optimization
+if get_option('enable_cb_batching')
+  add_project_arguments('-DDXVK_USE_CB_BATCHING', language: ['c', 'cpp'])
+  message('Constant Buffer batching enabled: Reducing draw call overhead through batched updates')
+endif
+
+# Async Query collection optimization
+if get_option('enable_async_query')
+  add_project_arguments('-DDXVK_USE_ASYNC_QUERY', language: ['c', 'cpp'])
+  message('Async Query collection enabled: Reducing CPU-GPU sync latency with asynchronous queries')
+endif
+
 dxvk_include_path = include_directories(dxvk_include_dirs)
 
 add_project_arguments(cpp.get_supported_arguments(cpp_args), language: 'cpp')

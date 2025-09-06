@@ -3,6 +3,7 @@
 #include "dxvk_format.h"
 #include "dxvk_util.h"
 #include "../util/util_asmlib.h"
+#include "../util/util_simd.h"
 
 namespace dxvk::util {
   
@@ -27,6 +28,11 @@ namespace dxvk::util {
           VkDeviceSize      blockSize,
           VkDeviceSize      pitchPerRow,
           VkDeviceSize      pitchPerLayer) {
+#if defined(DXVK_USE_VCL) && defined(DXVK_ARCH_X86) && defined(DXVK_USE_SIMD_PACK)
+    // Use SIMD-optimized version when available
+    packImageDataSIMD(dstBytes, srcBytes, blockCount, blockSize, pitchPerRow, pitchPerLayer);
+#else
+    // Original implementation
     auto dstData = reinterpret_cast<      char*>(dstBytes);
     auto srcData = reinterpret_cast<const char*>(srcBytes);
     
@@ -52,6 +58,7 @@ namespace dxvk::util {
         dstData += bytesPerLayer;
       }
     }
+#endif
   }
   
   
