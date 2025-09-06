@@ -50,11 +50,17 @@ c_args = [
   '-Wno-missing-braces',
 ]
 
-# FMA support (optional, now enabled by default for better performance)
+# FMA support (optional, now enabled by default for better performance on Linux)
+# Note: FMA requires AVX which is not supported on Windows due to stack alignment issues
 if get_option('enable_fma')
-  cpp_args += ['-mfma']  # FMA3 for modern Intel and AMD processors
-  c_args += ['-mfma']
-  add_project_arguments('-DDXVK_USE_FMA', language: ['cpp', 'c'])
+  if platform != 'windows'
+    cpp_args += ['-mfma']  # FMA3 for modern Intel and AMD processors (Linux only)
+    c_args += ['-mfma']
+    add_project_arguments('-DDXVK_USE_FMA', language: ['cpp', 'c'])
+    message('FMA enabled for Linux/Unix builds')
+  else
+    message('FMA disabled on Windows due to AVX stack alignment requirements')
+  endif
 endif
 
 link_args = []

@@ -9,5 +9,5 @@ option('native_sdl2',  type : 'feature', value : 'auto', description: 'Enable SD
 option('native_sdl3',  type : 'feature', value : 'auto', description: 'Enable SDL3 WSI for DXVK Native')
 option('enable_asmlib', type : 'boolean', value : true, description: 'Use Agner Fog\'s asmlib for optimized memory functions')
 option('enable_vcl', type : 'boolean', value : true, description: 'Use Agner Fog\'s Vector Class Library for SIMD-optimized vector/matrix operations')
-option('enable_fma', type : 'boolean', value : true, description: 'Enable FMA (Fused Multiply-Add) instructions for enhanced performance (requires Haswell/Piledriver or newer)')
+option('enable_fma', type : 'boolean', value : true, description: 'Enable FMA (Fused Multiply-Add) instructions for enhanced performance (Linux only, requires Haswell/Piledriver or newer)')
 option('enable_sha_hw', type : 'boolean', value : true, description: 'Use Intel SHA-NI/AMD SHA hardware acceleration for SHA1 operations (requires Goldmont/Ryzen or newer)')
